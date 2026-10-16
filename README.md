@@ -82,25 +82,41 @@ docker compose up -d --build
 
 ## Architecture
 
+```mermaid
+flowchart TB
+    classDef host fill:#0f172a,stroke:#38bdf8,color:#fff,stroke-width:2px
+    classDef container fill:#1e293b,stroke:#10b981,color:#fff,stroke-width:2px
+    classDef component fill:#334155,stroke:#38bdf8,color:#e2e8f0,stroke-width:1px
+    classDef data fill:#0f172a,stroke:#f59e0b,color:#fff,stroke-width:1px
+
+    subgraph Host["Host System"]
+        H1["/etc/fstab"]
+        H2["/mnt/Cloud4TB"]
+        H3["/proc · /sys"]
+        H4["Docker socket"]
+    end
+
+    subgraph Container["drive-manager container"]
+        subgraph Backend["FastAPI backend + uvicorn"]
+            B1["Mount validation<br/>read/write/rename/delete"]
+            B2["fstab editor<br/>nsenter → /etc/fstab"]
+            B3["Sync jobs<br/>local · rclone · cron"]
+            B4["Media renamer<br/>series → movie → LLM"]
+        end
+        DB[("SQLite<br/>app.db")]
+        UI["vanilla JS + CSS UI<br/>Dashboard · File Browser · Mounts<br/>fstab · Sync · Rclone · Media · Servers · Settings"]
+    end
+
+    Host -->|nsenter<br/>pid:host · SYS_ADMIN<br/>SYS_PTRACE| Container
+    Container --> DB
+    Backend --> UI
+
+    class Host,Host1,Host2,Host3,Host4 host
+    class Container,Backend,UI container
+    class B1,B2,B3,B4 component
+    class DB data
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      Host System                            │
-│  /etc/fstab   /mnt/Cloud4TB   /proc  /sys  Docker socket   │
-└──────────────┬────────────────┬─────────────────────────────┘
-               │ nsenter        │ host PID / mount namespace
-               ▼                ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   drive-manager container                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │  FastAPI    │  │   uvicorn   │  │  SQLite (app.db)    │  │
-│  │   backend   │  │    server   │  │  (run history cache)│  │
-│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘  │
-│         └────────────────┴────────────────────┘              │
-│                    vanilla JS + CSS UI                        │
-│  Dashboard • File Browser • Mounts • fstab • Sync • Rclone   │
-│  Media • Servers • Settings                                  │
-└─────────────────────────────────────────────────────────────┘
-```
+
 
 - **Config** lives in `/config/` as JSON (`auth.json`, `app.json`, `peers.json`, `fstab.json`, `sync-jobs.json`, `media-jobs.json`, `notifications.json`, `rclone.conf`, `secret.key`).
 - **Data** lives in `/data/` (`app.db`, `logs/`, `media-staging/`, `rclone-cache/`).
