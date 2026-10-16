@@ -1,0 +1,579 @@
+{% extends "base.html" %}
+{% block body %}
+{% set labels = {"dashboard": "Dashboard", "files": "File Browser", "mounts": "Mounts", "fstab": "Persistent Mounts", "sync": "Sync Jobs",
+                  "rclone": "Rclone", "media": "Media", "servers": "Servers", "settings": "Settings"} %}
+
+<header class="top-bar" role="banner">
+  <div class="top-bar-inner">
+    <div class="brand">
+      <svg class="brand-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect x="4" y="4" width="24" height="24" rx="6" stroke="currentColor" stroke-width="2"/>
+        <path d="M8 16 L14 22 L24 10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="brand-text">Drive Manager</span>
+    </div>
+    <nav class="nav-tabs" id="nav" role="tablist" aria-label="Main navigation">
+      {% for t in tabs %}
+      <a href="/{{ '' if t == 'dashboard' else t }}" data-tab="{{ t }}" class="nav-tab {% if t == tab %}active{% endif %}" role="tab" aria-selected="{{ t == tab }}">{{ labels[t] }}</a>
+      {% endfor %}
+    </nav>
+    <div class="header-actions">
+      <form method="post" action="/logout"><button class="icon-btn logout-btn" aria-label="Log out" title="Log out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button></form>
+    </div>
+  </div>
+  <div class="nav-indicator" id="nav-indicator"></div>
+</header>
+
+<main class="main-content" data-current-tab="{{ tab }}">
+
+<!-- ===================================================== Dashboard -->
+<section data-section="dashboard" class="section-panel {% if tab != 'dashboard' %}hidden{% endif %}" role="tabpanel" aria-labelledby="dashboard-tab">
+  <div class="section-header">
+    <h1 class="section-title">Dashboard</h1>
+    <p class="section-subtitle">System overview & quick stats</p>
+  </div>
+  <div class="stats-grid" id="dash-cards"></div>
+
+  <!-- Wrapped dashboard panels (responsive, content-sized) -->
+  <div class="dashboard-wrap">
+    <div class="dashboard-grid">
+      <!-- System metrics: compact 4-up stat cards -->
+      <div class="panel panel-compact grid grid-cols-4 gap-3 p-4">
+        <div class="text-center">
+          <div class="text-lg font-mono font-bold text-slate-400" id="sys-uptime">—</div>
+          <div class="text-xs text-slate-500 mt-1">Uptime</div>
+        </div>
+        <div class="text-center">
+          <div class="text-lg font-mono font-bold text-slate-400" id="sys-cpu">—%</div>
+          <div class="text-xs text-slate-500 mt-1">CPU</div>
+        </div>
+        <div class="text-center">
+          <div class="text-lg font-mono font-bold text-slate-400" id="sys-mem">—%</div>
+          <div class="text-xs text-slate-500 mt-1">Memory</div>
+        </div>
+        <div class="text-center">
+          <div class="text-lg font-mono font-bold text-slate-400" id="sys-procs">—</div>
+          <div class="text-xs text-slate-500 mt-1">Processes</div>
+        </div>
+      </div>
+
+      <!-- Disk space: content-sized -->
+      <div class="panel panel-compact">
+        <div class="panel-header"><h2 class="panel-title">Disk Space</h2></div>
+        <div id="dash-disks" class="disk-list p-4"></div>
+      </div>
+
+      <!-- Mounted network mounts: content-sized -->
+      <div class="panel panel-compact">
+        <div class="panel-header"><h2 class="panel-title">Mounted Network Mounts</h2></div>
+        <div id="dash-mounts" class="disk-list p-4"></div>
+      </div>
+
+      <!-- CPU & Memory bars: side by side with recent activity -->
+      <div class="panel panel-compact">
+        <div class="panel-header"><h2 class="panel-title">CPU & Memory</h2></div>
+        <div class="panel-body space-y-3 p-4">
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-400">CPU</span>
+              <span class="font-mono text-xs" id="sys-cpu-pct">—</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill bg-accent" id="sys-cpu-bar" style="width:0%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-400">Memory</span>
+              <span class="font-mono text-xs" id="sys-mem-pct">—</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill bg-emerald" id="sys-mem-bar" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent activity: content-sized -->
+      <div class="panel panel-compact">
+        <div class="panel-header"><h2 class="panel-title">Recent Activity</h2></div>
+        <div class="tbl-wrap p-4"><table class="tbl"><thead><tr><th>Kind</th><th>Job</th><th>Status</th><th>Finished</th><th>Message</th></tr></thead>
+          <tbody id="dash-runs"></tbody></table></div>
+      </div>
+
+      <!-- System Processes: content-sized -->
+      <div class="panel panel-compact">
+        <div class="panel-header"><h2 class="panel-title">System Processes</h2></div>
+        <div class="panel-body p-4">
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th>PID</th><th>Name</th><th>State</th></tr></thead>
+            <tbody id="sys-procs-body"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- System Logs: tall panel, spans 2 columns and 2 rows on wide screens -->
+      <div class="panel col-span-2 row-span-2">
+        <div class="panel-header"><h2 class="panel-title">System Logs</h2></div>
+        <div class="flex flex-wrap gap-2 items-end mb-3 p-4">
+          <label><span class="lbl">Log</span><select class="inp w-auto" id="log-name"></select></label>
+          <label><span class="lbl">Level</span><select class="inp w-auto" id="log-level"><option value="">all</option><option>INFO</option><option>WARNING</option><option>ERROR</option></select></label>
+          <label><span class="lbl">Lines</span><input class="inp w-24" type="number" id="log-lines" value="300" min="10" max="5000"></label>
+          <button class="btn btn-sm" id="log-refresh">Refresh</button>
+          <label class="text-sm flex items-center gap-1"><input type="checkbox" id="log-follow" checked> auto-refresh</label>
+        </div>
+        <pre class="logbox p-4" id="log-out">Select a log.</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================== Mounts -->
+<section data-section="mounts" class="{% if tab != 'mounts' %}hidden{% endif %} space-y-4">
+  <div class="section-header">
+    <h1 class="section-title">Mounts</h1>
+    <p class="section-subtitle">Add and manage network mounts (NFS, SMB/CIFS, Rclone)</p>
+  </div>
+  <div class="card">
+    <h2 class="font-semibold mb-3">Add mount</h2>
+    <form id="mount-form" class="grid grid-cols-2 gap-3">
+      <label><span class="lbl">Type</span>
+        <select class="inp" name="type" id="mf-type" style="max-width: 220px; width: auto;"><option value="nfs">NFS</option><option value="smb">SMB / CIFS</option><option value="rclone">Rclone</option></select></label>
+      <label><span class="lbl">Name</span><input class="inp" name="name" required pattern="[A-Za-z0-9_-]+" placeholder="nas"></label>
+      <label class="col-span-2 mf nfs smb"><span class="lbl">Host / server</span><input class="inp" name="host" placeholder="192.168.1.10"></label>
+      <label class="col-span-2 mf nfs"><span class="lbl">Export</span><input class="inp" name="export" placeholder="/srv/share"></label>
+      <label class="col-span-2 mf smb"><span class="lbl">Share</span><input class="inp" name="share" placeholder="media"></label>
+      <label class="col-span-2 mf smb"><span class="lbl">Username</span><input class="inp" name="username" autocomplete="off"></label>
+      <label class="col-span-2 mf smb"><span class="lbl">Password</span><input class="inp" type="password" name="password" autocomplete="new-password"></label>
+      <label class="col-span-2 mf rclone"><span class="lbl">Rclone remote</span><select class="inp" name="remote" id="mf-remote"></select></label>
+      <label class="col-span-2 mf rclone"><span class="lbl">Sub-path (optional)</span><input class="inp" name="subpath" placeholder="Photos"></label>
+      <label class="col-span-2"><span class="lbl">Mount point (under /mnt)</span>
+        <div class="flex gap-2"><input class="inp flex-1" name="mount_point" id="mf-mp" placeholder="/mnt/<name>"><button type="button" class="btn" data-browse="#mf-mp">Browse</button></div></label>
+      <label class="col-span-2 mf nfs smb"><span class="lbl">Options (blank = defaults)</span><input class="inp" name="options" id="mf-options" placeholder="blank = defaults for selected type"></label>
+      <div class="col-span-2 flex flex-wrap items-end gap-4 text-sm">
+        <label class="mf nfs smb flex items-center gap-1"><input type="checkbox" name="persist"> Persist in /etc/fstab</label>
+        <label class="flex items-center gap-1"><input type="checkbox" name="auto_mount" checked> Auto-mount on start</label>
+        <label class="flex items-center gap-1"><input type="checkbox" name="mount_now" checked> Mount now</label>
+      </div>
+      <div class="col-span-2"><button class="btn btn-primary">Add mount</button>
+        <span class="text-xs text-slate-500 ml-2" id="mf-hint"></span></div>
+      <p class="col-span-2 text-xs text-slate-500 mt-2" id="mf-type-help">Select mount type to see appropriate options</p>
+    </form>
+  </div>
+  <div class="card">
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="font-semibold">Managed mounts</h2>
+      <button class="btn" id="mounts-check-all">Re-check all</button>
+    </div>
+    <p class="text-xs text-slate-500 mb-2">A mount is healthy only when the read, write, rename and delete tests all pass.</p>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Name</th><th>Source</th><th>Mount point</th><th>Mounted</th><th>Read</th><th>Write</th><th>Rename</th><th>Delete</th><th>Ownership</th><th></th></tr></thead>
+      <tbody id="mounts-body"></tbody></table></div>
+  </div>
+</section>
+
+<!-- ===================================================== File Browser -->
+<section data-section="files" class="{% if tab != 'files' %}hidden{% endif %} space-y-3">
+  <div class="section-header">
+    <h1 class="section-title">File Browser</h1>
+    <p class="section-subtitle">Browse, navigate and manage files across mount points</p>
+  </div>
+  <div class="card">
+    <div class="flex items-center justify-between mb-1">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 12a9 9 0 019 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 019-9m-9 9V3m18 18v-9M3 12l3 3m0 0l3-3m-3 3V12" />
+        </svg>
+        <h2 class="font-semibold">File Browser</h2>
+      </div>
+      <div class="flex gap-1">
+        <button class="btn btn-sm" id="fb-up" title="Up one level">↑</button>
+        <button class="btn btn-sm" id="fb-root" title="Roots">🏠</button>
+      </div>
+    </div>
+
+    <!-- Path bar -->
+    <div class="flex flex-wrap items-center gap-1 text-xs mb-3 bg-slate-50 p-2 rounded border border-slate-200">
+      <span class="cursor-pointer text-indigo-600 hover:underline px-1" id="fb-path-root">Roots</span>
+      <span class="text-slate-400">/</span>
+      <span id="fb-path-bar"></span>
+    </div>
+
+    <!-- Tree -->
+    <div id="fb-tree" class="space-y-0 min-h-[200px]"></div>
+
+    <div id="fb-empty" class="hidden py-12 text-center">
+      <svg class="w-12 h-12 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <p class="text-slate-500 text-sm">Empty folder</p>
+    </div>
+
+    <div id="fb-loading" class="hidden py-8 text-center text-sm text-slate-500">Loading…</div>
+  </div>
+</section>
+
+<!-- ===================================================== Persistent mounts (fstab) -->
+<section data-section="fstab" class="{% if tab != 'fstab' %}hidden{% endif %} space-y-4">
+  <div class="section-header">
+    <h1 class="section-title">Persistent Mounts (fstab)</h1>
+    <p class="section-subtitle">Manage fstab entries for automatic mounts on boot</p>
+  </div>
+  <div class="card">
+    <div class="flex flex-wrap items-center gap-2 mb-3">
+      <h2 class="font-semibold mr-auto">Host /etc/fstab</h2>
+      <input class="inp max-w-xs" id="fstab-filter" placeholder="Filter…">
+      <button class="btn" id="fstab-reload">Reload</button>
+    </div>
+    <p class="text-xs text-slate-500 mb-2" id="fstab-meta"></p>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Device</th><th>Mount point</th><th>Type</th><th>Options</th><th>Mounted?</th><th>Automount?</th><th>Nofail?</th><th>Actions</th></tr></thead>
+      <tbody id="fstab-body"></tbody></table></div>
+  </div>
+</section>
+
+<!-- ===================================================== Sync jobs -->
+<section data-section="sync" class="{% if tab != 'sync' %}hidden{% endif %} space-y-4">
+  <div class="section-header">
+    <h1 class="section-title">Sync Jobs</h1>
+    <p class="section-subtitle">Create and manage directory synchronization jobs</p>
+  </div>
+  <div class="card">
+    <h2 class="font-semibold mb-3" id="sj-title">New sync job</h2>
+    <form id="sync-form" class="grid grid-cols-2 gap-3">
+      <input type="hidden" name="id">
+      <label><span class="lbl">Name</span><input class="inp" name="name" required></label>
+      <label><span class="lbl">Mode</span><select class="inp" name="mode"><option value="copy">copy (never deletes)</option><option value="sync">sync (mirror, deletes extras in destination)</option></select></label>
+      <div><span class="lbl">Source (folder or remote:path)</span>
+        <div class="flex gap-2"><input class="inp" name="source" id="sj-source" required><button type="button" class="btn" data-browse="#sj-source">Browse</button></div></div>
+      <div><span class="lbl">Destination (folder or remote:path)</span>
+        <div class="flex gap-2"><input class="inp" name="destination" id="sj-dest" required><button type="button" class="btn" data-browse="#sj-dest">Browse</button></div></div>
+      <div class="col-span-2 schedule-card" data-schedule="sj">
+        <span class="lbl">Schedule</span>
+        <div class="schedule-grid">
+          <div class="schedule-field">
+            <label>Type</label>
+            <select class="inp schedule-type-select" data-s="type">
+              <option value="manual">Manual run only</option><option value="event">Event driven (on file change)</option>
+              <option value="minutes">Every N minutes</option><option value="hourly">Hourly</option><option value="daily">Daily</option>
+              <option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="cron">Custom cron</option>
+            </select>
+          </div>
+          <label data-for="minutes" class="schedule-field">every <input class="inp w-20" type="number" min="1" max="59" value="15" data-s="every"> min</label>
+          <label data-for="hourly" class="schedule-field">at minute <input class="inp w-20" type="number" min="0" max="59" value="0" data-s="minute"></label>
+          <label data-for="weekly" class="schedule-field">on <select class="inp schedule-type-select" data-s="weekday">
+            <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
+            <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></label>
+          <label data-for="monthly" class="schedule-field">day <input class="inp w-20" type="number" min="1" max="31" value="1" data-s="day"></label>
+          <label data-for="daily weekly monthly" class="schedule-field">at <input class="inp w-28" type="time" value="02:00" data-s="time"></label>
+          <label data-for="cron" class="schedule-field">cron <input class="inp w-44 font-mono" placeholder="*/30 * * * *" data-s="cron"></label>
+        </div>
+        <p class="text-xs mt-2" data-s="preview"></p>
+      </div>
+      <label><span class="lbl">Retries on failure</span><input class="inp" type="number" min="0" max="10" name="retry_count" value="3"></label>
+      <label class="flex items-end gap-2 text-sm"><input type="checkbox" name="enabled" checked> Enabled</label>
+      <div class="col-span-2 flex gap-2"><button class="btn btn-primary">Save job</button><button type="button" class="btn" id="sj-reset">New</button></div>
+    </form>
+  </div>
+  <div class="card"><h2 class="font-semibold mb-2">Jobs</h2>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Name</th><th>Source → Destination</th><th>Mode</th><th>Schedule</th><th>Last run</th><th></th></tr></thead>
+      <tbody id="sync-body"></tbody></table></div></div>
+</section>
+
+<!-- ===================================================== Rclone -->
+<section data-section="rclone" class="{% if tab != 'rclone' %}hidden{% endif %} space-y-4">
+  <div class="section-header">
+    <h1 class="section-title">Rclone</h1>
+    <p class="section-subtitle">Manage rclone remotes and sync operations</p>
+  </div>
+  <div class="grid grid-cols-2 gap-4">
+    <div class="card">
+      <h2 class="font-semibold mb-3">Remote editor</h2>
+      <form id="remote-form" class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <label><span class="lbl">Name</span><input class="inp" name="name" required pattern="[A-Za-z0-9_-]+"></label>
+          <label><span class="lbl">Type</span><input class="inp" name="type" list="rclone-types" required placeholder="drive, s3, sftp…"></label>
+        </div>
+        <datalist id="rclone-types"><option value="drive"><option value="s3"><option value="b2"><option value="sftp"><option value="webdav"><option value="onedrive"><option value="dropbox"><option value="ftp"><option value="smb"><option value="crypt"></datalist>
+        <label class="block"><span class="lbl">Options (one key=value per line; pass/password are obscured automatically)</span>
+          <textarea class="inp font-mono" rows="6" name="options" placeholder="host=example.com&#10;user=me&#10;pass=secret"></textarea></label>
+        <button class="btn btn-primary">Save remote</button>
+        <p class="text-xs text-slate-500">OAuth remotes (Drive, OneDrive…): run <code>rclone config</code> on a desktop and paste the <code>token=</code> line.</p>
+      </form>
+    </div>
+    <div class="card">
+      <h2 class="font-semibold mb-3">Sync now</h2>
+      <form id="rsync-form" class="space-y-3">
+        <div><span class="lbl">Source</span><div class="flex gap-2"><input class="inp" name="source" id="rs-src" required placeholder="remote:path or /mnt/..."><button type="button" class="btn" data-browse="#rs-src">Browse</button></div></div>
+        <div><span class="lbl">Destination</span><div class="flex gap-2"><input class="inp" name="destination" id="rs-dst" required><button type="button" class="btn" data-browse="#rs-dst">Browse</button></div></div>
+        <label class="block"><span class="lbl">Mode</span><select class="inp" name="mode"><option value="copy">copy</option><option value="sync">sync (deletes extras)</option></select></label>
+        <button class="btn btn-primary">Start</button> <span class="text-xs text-slate-500">Progress: Logs → rclone-sync-now.log</span>
+      </form>
+    </div>
+  </div>
+  <div class="card"><h2 class="font-semibold mb-2">Remotes</h2>
+    <p class="text-xs text-slate-500 mb-2" id="rclone-meta"></p>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Type</th><th>Mount point</th><th>Mounted</th><th></th></tr></thead>
+      <tbody id="rclone-body"></tbody></table></div></div>
+</section>
+
+<!-- ===================================================== Media -->
+<section data-section="media" class="{% if tab != 'media' %}hidden{% endif %} space-y-4">
+  <div class="section-header">
+    <h1 class="section-title">Media</h1>
+    <p class="section-subtitle">Manage media jobs and scanning settings</p>
+  </div>
+  <div class="grid grid-cols-2 gap-4">
+    <div class="card">
+      <h2 class="font-semibold mb-3" id="mj-title">New media job</h2>
+      <form id="media-form" class="space-y-3">
+        <input type="hidden" name="id">
+        <label class="block"><span class="lbl">Name</span><input class="inp" name="name" required></label>
+        <div><span class="lbl">Source (incoming downloads)</span><div class="flex gap-2"><input class="inp" name="source" id="mj-src" required><button type="button" class="btn" data-browse="#mj-src">Browse</button></div></div>
+        <div><span class="lbl">Destination (Jellyfin library root)</span><div class="flex gap-2"><input class="inp" name="destination" id="mj-dst" required><button type="button" class="btn" data-browse="#mj-dst">Browse</button></div></div>
+        <div class="grid grid-cols-2 gap-3">
+          <label><span class="lbl">Mode</span><select class="inp" name="mode"><option value="move">move</option><option value="copy">copy</option></select></label>
+          <label><span class="lbl">Scan every (minutes)</span><input class="inp" type="number" min="1" max="1440" name="scan_minutes" value="15"></label>
+        </div>
+        <div class="flex gap-4 text-sm"><label class="flex items-center gap-1"><input type="checkbox" name="event_driven" checked> Watch for new files</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="enabled" checked> Enabled</label></div>
+        <div class="flex gap-2"><button class="btn btn-primary">Save job</button><button type="button" class="btn" id="mj-reset">New</button></div>
+      </form>
+    </div>
+    <div class="card space-y-3">
+      <h2 class="font-semibold">Settings &amp; preview</h2>
+      <form id="media-settings" class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <label><span class="lbl">LLM base URL</span><input class="inp" name="llm_base_url"></label>
+          <label><span class="lbl">LLM model</span><input class="inp" name="llm_model"></label>
+          <label><span class="lbl">Default category</span><input class="inp" name="default_category"></label>
+          <label class="flex items-end gap-1 text-sm"><input type="checkbox" name="use_llm"> Use LLM fallback <span id="llm-key" class="badge ml-1"></span></label>
+        </div>
+        <label class="block"><span class="lbl">Category rules (language=Category per line)</span>
+          <textarea class="inp font-mono" rows="5" name="category_rules"></textarea></label>
+        <button class="btn">Save settings</button>
+      </form>
+      <form id="media-preview" class="flex gap-2"><input class="inp" name="filename" placeholder="Some.Movie.2023.1080p.WEB-DL.Telugu.mkv" required>
+        <button class="btn">Preview</button></form>
+      <pre class="logbox hidden" id="media-preview-out"></pre>
+    </div>
+  </div>
+  <div class="card"><h2 class="font-semibold mb-2">Jobs</h2>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Source → Destination</th><th>Mode</th><th>Last scan</th><th></th></tr></thead>
+      <tbody id="media-body"></tbody></table></div></div>
+  <div class="card hidden" id="media-records-card"><h2 class="font-semibold mb-2">Processed files <span id="media-records-job" class="text-slate-500"></span></h2>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Source</th><th>Status</th><th>Target</th><th>Updated</th></tr></thead>
+      <tbody id="media-records"></tbody></table></div></div>
+</section>
+
+<!-- ===================================================== Servers (NFS/SMB) -->
+<section data-section="servers" class="{% if tab != 'servers' %}hidden{% endif %} space-y-4">
+  <div class="section-header">
+    <h1 class="section-title">Servers</h1>
+    <p class="section-subtitle">Configure NFS and SMB/SMB sharing services</p>
+  </div>
+  <div class="grid grid-cols-2 gap-4">
+    <!-- NFS Server -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-semibold">NFS Server</h2>
+        <span id="nfs-status" class="badge muted">unknown</span>
+      </div>
+      <div class="flex gap-2 mb-3">
+        <button class="btn btn-sm" id="nfs-install">Install</button>
+        <button class="btn btn-sm" id="nfs-start">Start</button>
+        <button class="btn btn-sm" id="nfs-stop">Stop</button>
+        <button class="btn btn-sm" id="nfs-restart">Restart</button>
+        <button class="btn btn-sm" id="nfs-refresh">Refresh</button>
+      </div>
+      <div class="card mb-3 p-3">
+        <h3 class="font-semibold mb-2">Add Export</h3>
+        <form id="nfs-export-form" class="grid grid-cols-4 gap-3">
+          <label><span class="lbl">Path</span><div class="flex gap-2"><input class="inp flex-1" name="path" id="nfs-exp-path" placeholder="/mnt/share" required><button type="button" class="btn" data-browse="#nfs-exp-path">Browse</button></div></label>
+          <label><span class="lbl">Client/Network</span><input class="inp" name="client" value="*" placeholder="* or 192.168.1.0/24"></label>
+          <label class="col-span-2"><span class="lbl">Options</span>
+            <div class="flex flex-wrap gap-2">
+              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="readonly"> Read-only</label>
+              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="sync" checked> Sync</label>
+              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="no_root_squash"> No root squash</label>
+              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="no_subtree_check" checked> No subtree check</label>
+              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="insecure"> Insecure</label>
+            </div>
+          </label>
+          <div class="col-span-4"><button class="btn btn-primary" type="submit">Add Export</button></div>
+        </form>
+      </div>
+      <h3 class="font-semibold mb-2">Exports</h3>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Path</th><th>Client</th><th>Options</th><th>Exists</th><th>Mounted</th><th></th></tr></thead>
+        <tbody id="nfs-exports-body"></tbody>
+      </table></div>
+    </div>
+
+    <!-- SMB Server -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-semibold">SMB Server</h2>
+        <span id="smb-status" class="badge muted">unknown</span>
+      </div>
+      <div class="flex gap-2 mb-3">
+        <button class="btn btn-sm" id="smb-install">Install</button>
+        <button class="btn btn-sm" id="smb-start">Start</button>
+        <button class="btn btn-sm" id="smb-stop">Stop</button>
+        <button class="btn btn-sm" id="smb-restart">Restart</button>
+        <button class="btn btn-sm" id="smb-refresh">Refresh</button>
+      </div>
+      <div class="card mb-3 p-3">
+        <h3 class="font-semibold mb-2">Add Share</h3>
+        <form id="smb-share-form" class="grid grid-cols-4 gap-3">
+          <label><span class="lbl">Share Name</span><input class="inp" name="name" placeholder="media" required></label>
+          <label><span class="lbl">Path</span><div class="flex gap-2"><input class="inp flex-1" name="path" id="smb-share-path" placeholder="/mnt/share" required><button type="button" class="btn" data-browse="#smb-share-path">Browse</button></div></label>
+          <label class="col-span-4"><span class="lbl">Options</span>
+            <div class="flex flex-wrap gap-2">
+              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="readonly"> Read-only</label>
+              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="guest_ok"> Guest access</label>
+              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="browseable" checked> Browseable</label>
+              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="force_user" id="smb-force-user-enable"> Force user</label>
+              <input class="inp w-auto text-sm" name="force_user" id="smb-force-user" placeholder="username" disabled>
+              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="force_group" id="smb-force-group-enable"> Force group</label>
+              <input class="inp w-auto text-sm" name="force_group" id="smb-force-group" placeholder="group" disabled>
+            </div>
+          </label>
+          <div class="col-span-4"><button class="btn btn-primary" type="submit">Add Share</button></div>
+        </form>
+      </div>
+      <h3 class="font-semibold mb-2">Shares</h3>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Name</th><th>Path</th><th>Read-only</th><th>Guest</th><th>Browseable</th><th>Exists</th><th></th></tr></thead>
+        <tbody id="smb-shares-body"></tbody>
+      </table></div>
+      <h3 class="font-semibold mt-4 mb-2">SMB Users</h3>
+      <div class="flex gap-2 mb-2">
+        <input class="inp w-48" id="smb-user-name" placeholder="username">
+        <input class="inp w-48" type="password" id="smb-user-pass" placeholder="password">
+        <button class="btn btn-primary" id="smb-user-add">Add User</button>
+      </div>
+      <div id="smb-users-list" class="text-sm text-slate-500"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================== Settings -->
+<section data-section="settings" class="{% if tab != 'settings' %}hidden{% endif %} grid grid-cols-2 gap-4 items-start">
+  <div class="section-header grid-cols-2">
+    <h1 class="section-title">Settings</h1>
+    <p class="section-subtitle">Configure notifications, password, roots and theme</p>
+  </div>
+  <form class="card space-y-3" id="notify-form">
+    <h2 class="font-semibold">Notifications (failures only)</h2>
+    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="telegram_enabled"> Telegram</label>
+    <label class="block"><span class="lbl">Bot token <span id="tg-token-set" class="text-slate-400"></span></span><input class="inp" name="bot_token" type="password" autocomplete="off" placeholder="leave blank to keep"></label>
+    <label class="block"><span class="lbl">Chat ID</span><input class="inp" name="chat_id"></label>
+    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="webhook_enabled"> Webhook (JSON POST)</label>
+    <label class="block"><span class="lbl">Webhook URL</span><input class="inp" name="webhook_url" placeholder="https://…"></label>
+    <div class="flex gap-2"><button class="btn btn-primary">Save</button><button type="button" class="btn" id="notify-test">Send test</button></div>
+  </form>
+  <div class="space-y-4">
+    <form class="card space-y-3" id="password-form">
+      <h2 class="font-semibold">Change password</h2>
+      <input class="inp" type="password" name="old_password" placeholder="Current password" autocomplete="current-password" required>
+      <input class="inp" type="password" name="new_password" placeholder="New password (min. 8)" minlength="8" autocomplete="new-password" required>
+      <input class="inp" type="password" name="confirm" placeholder="Confirm new password" minlength="8" autocomplete="new-password" required>
+      <button class="btn btn-primary">Change password</button>
+      <p class="text-xs text-slate-500">All other sessions are signed out.</p>
+    </form>
+    <form class="card space-y-3" id="roots-form">
+      <h2 class="font-semibold">Folder picker roots</h2>
+      <textarea class="inp font-mono" rows="3" name="roots"></textarea>
+      <p class="text-xs text-slate-500" id="roots-env"></p>
+      <button class="btn">Save roots</button>
+    </form>
+    <form class="card space-y-3" id="theme-form">
+      <h2 class="font-semibold">Theme</h2>
+      <label class="flex items-center gap-2">
+        <span class="lbl">UI theme</span>
+        <select class="inp w-auto" id="theme-select">
+          <option value="dark">Dark (slate)</option>
+          <option value="matrix">Matrix (green)</option>
+          <option value="ocean">Ocean (blue)</option>
+          <option value="sunset">Sunset (orange)</option>
+          <option value="monochrome">Monochrome (gray)</option>
+        </select>
+      </label>
+      <p class="text-xs text-slate-500">Theme is saved in your browser and applied on reload.</p>
+    </form>
+  </div>
+</section>
+
+</main>
+
+<!-- folder picker -->
+<div class="modal-bg hidden" id="picker">
+  <div class="card w-full max-w-lg">
+    <div class="flex items-center gap-2 mb-2"><h3 class="font-semibold mr-auto">Choose folder</h3><button class="btn btn-sm" id="picker-close">✕</button></div>
+    <p class="text-xs font-mono bg-slate-100 rounded p-2 mb-2 break-all" id="picker-path"></p>
+    <ul class="border rounded max-h-72 overflow-auto text-sm divide-y" id="picker-list"></ul>
+    <div class="flex justify-end gap-2 mt-3"><button class="btn" id="picker-up">Up</button><button class="btn btn-primary" id="picker-select">Select this folder</button></div>
+  </div>
+</div>
+
+<!-- typed confirmation -->
+<div class="modal-bg hidden" id="confirm">
+  <form class="card w-full max-w-md space-y-3" id="confirm-form">
+    <h3 class="font-semibold" id="confirm-title">Confirm</h3>
+    <p class="text-sm" id="confirm-text"></p>
+    <input class="inp font-mono" id="confirm-input" autocomplete="off">
+    <div class="flex justify-end gap-2"><button type="button" class="btn" id="confirm-cancel">Cancel</button><button class="btn btn-danger" id="confirm-ok" disabled>Confirm</button></div>
+  </form>
+</div>
+
+<!-- import fstab as managed mount -->
+<div class="modal-bg hidden" id="import-modal">
+  <form class="card w-full max-w-md space-y-3" id="import-form">
+    <input type="hidden" name="mountpoint" id="import-mountpoint">
+    <input type="hidden" name="type" id="import-type">
+    <h3 class="font-semibold" id="import-title">Import as Managed Mount</h3>
+    <p class="text-sm" id="import-text"></p>
+    <label class="block"><span class="lbl">Name</span><input class="inp" name="name" id="import-name" required pattern="[A-Za-z0-9_-]+"></label>
+    <label class="block"><span class="lbl">Host / Server</span><input class="inp" name="host" id="import-host"></label>
+    <label class="block mf nfs"><span class="lbl">Export</span><input class="inp" name="export" id="import-export"></label>
+    <label class="block mf smb"><span class="lbl">Share</span><input class="inp" name="share" id="import-share"></label>
+    <label class="block mf smb"><span class="lbl">Username</span><input class="inp" name="username" id="import-username"></label>
+    <label class="block mf smb"><span class="lbl">Password</span><input class="inp" type="password" name="password" id="import-password" autocomplete="new-password"></label>
+    <label class="block"><span class="lbl">Options (blank = defaults)</span><input class="inp" name="options" id="import-options"></label>
+    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="auto_mount" id="import-auto-mount" checked> Auto-mount on start</label>
+    <div class="flex justify-end gap-2"><button type="button" class="btn" id="import-cancel">Cancel</button><button class="btn btn-primary" id="import-ok">Import</button></div>
+  </form>
+</div>
+
+<!-- fstab entry edit modal -->
+<div class="modal-bg hidden" id="fstab-edit-modal">
+  <form class="card w-full max-w-md space-y-3" id="fstab-edit-form">
+    <input type="hidden" name="mountpoint" id="edit-mountpoint">
+    <h3 class="font-semibold" id="edit-title">Edit fstab Entry</h3>
+    <p class="text-xs text-slate-500 mb-2" id="edit-mountpoint-display"></p>
+    <label class="block"><span class="lbl">Mount at boot (noauto)</span>
+      <label class="flex items-center gap-2"><input type="checkbox" name="noauto" id="edit-noauto"> Mount at boot</label>
+      <p class="text-xs text-slate-400 mt-1">Unchecked = add noauto (do not mount at boot)</p>
+    </label>
+    <label class="block"><span class="lbl">Automount</span>
+      <label class="flex items-center gap-2"><input type="checkbox" name="automount" id="edit-automount"> x-systemd.automount</label>
+      <p class="text-xs text-slate-400 mt-1">Mount on first access</p>
+    </label>
+    <label class="block"><span class="lbl">Nofail</span>
+      <label class="flex items-center gap-2"><input type="checkbox" name="nofail" id="edit-nofail"> nofail</label>
+      <p class="text-xs text-slate-400 mt-1">Boot even if mount fails</p>
+    </label>
+    <label class="block"><span class="lbl">Options</span><input class="inp" name="options" id="edit-options" placeholder="comma-separated options"></label>
+    <div class="flex justify-end gap-2"><button type="button" class="btn" id="fstab-edit-cancel">Cancel</button><button class="btn btn-primary" id="fstab-edit-ok">Save</button></div>
+  </form>
+</div>
+
+<div id="toasts"></div>
+<script src="/static/app.js"></script>
+{% endblock %}

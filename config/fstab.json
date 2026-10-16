@@ -1,0 +1,50 @@
+{
+  "entries": [
+    {
+      "automount": false,
+      "device": "LABEL=cloudimg-rootfs",
+      "dump": "0",
+      "fstype": "ext4",
+      "mountpoint": "/",
+      "nofail": false,
+      "options": "discard,commit=30,errors=remount-ro",
+      "pass": "1",
+      "raw": "LABEL=cloudimg-rootfs\t/\t ext4\tdiscard,commit=30,errors=remount-ro\t0 1"
+    },
+    {
+      "automount": false,
+      "device": "LABEL=BOOT",
+      "dump": "0",
+      "fstype": "ext4",
+      "mountpoint": "/boot",
+      "nofail": false,
+      "options": "defaults",
+      "pass": "2",
+      "raw": "LABEL=BOOT\t/boot\text4\tdefaults\t0 2"
+    },
+    {
+      "automount": false,
+      "device": "LABEL=UEFI",
+      "dump": "0",
+      "fstype": "vfat",
+      "mountpoint": "/boot/efi",
+      "nofail": false,
+      "options": "umask=0077",
+      "pass": "1",
+      "raw": "LABEL=UEFI\t/boot/efi\tvfat\tumask=0077\t0 1"
+    },
+    {
+      "automount": false,
+      "device": "UUID=fe40bac7-5b05-4a36-bd61-78fe0f8acfa1",
+      "dump": "0",
+      "fstype": "ext4",
+      "mountpoint": "/mnt/block-storage",
+      "nofail": true,
+      "options": "defaults,nofail,noatime,_netdev",
+      "pass": "2",
+      "raw": "UUID=fe40bac7-5b05-4a36-bd61-78fe0f8acfa1  /mnt/block-storage  ext4  defaults,nofail,noatime,_netdev  0  2"
+    }
+  ],
+  "error": null,
+  "read_at": "2026-10-16T10:51:14+00:00"
+}

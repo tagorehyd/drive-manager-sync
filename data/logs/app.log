@@ -1,0 +1,771 @@
+2026-10-12 07:56:24,361 [WARNING] drive_manager: FIRST BOOT: setup password is wm0ZyzhIhzjn8rMA (also in /config/setup-password). Enter it on /setup.
+2026-10-12 07:56:24,374 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-12 07:56:24,376 [INFO] drive_manager: Drive Manager started
+2026-10-12 08:36:03,517 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-12 08:36:03,518 [INFO] drive_manager: Drive Manager stopped
+2026-10-12 11:03:09,330 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-12 11:03:09,331 [INFO] drive_manager: Drive Manager started
+2026-10-14 11:06:04,654 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-14 11:06:04,655 [INFO] drive_manager: Drive Manager stopped
+2026-10-14 11:06:06,158 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-14 11:06:06,159 [INFO] drive_manager: Drive Manager started
+2026-10-14 11:15:05,178 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-14 11:15:05,178 [INFO] drive_manager: Drive Manager stopped
+2026-10-14 11:15:06,709 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-14 11:15:06,710 [INFO] drive_manager: Drive Manager started
+2026-10-14 11:27:43,255 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-14 11:27:43,255 [INFO] drive_manager: Drive Manager stopped
+2026-10-14 11:27:44,742 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-14 11:27:44,743 [INFO] drive_manager: Drive Manager started
+2026-10-14 11:32:03,254 [WARNING] app.routes.auth: failed login for 'admin' from 172.23.0.1
+2026-10-14 11:32:30,959 [WARNING] app.routes.auth: failed login for 'admin' from 172.23.0.1
+2026-10-14 11:33:06,755 [WARNING] app.routes.auth: failed login for 'admin' from 172.23.0.1
+2026-10-14 11:42:55,130 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-14 11:42:55,131 [INFO] drive_manager: Drive Manager stopped
+2026-10-14 11:42:56,779 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-14 11:42:56,781 [INFO] drive_manager: Drive Manager started
+2026-10-14 11:49:04,324 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-14 11:49:04,325 [INFO] drive_manager: Drive Manager stopped
+2026-10-14 11:49:05,850 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-14 11:49:05,851 [INFO] drive_manager: Drive Manager started
+2026-10-14 11:50:03,229 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-14 11:50:03,230 [INFO] drive_manager: Drive Manager stopped
+2026-10-14 11:50:04,768 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-14 11:50:04,769 [INFO] drive_manager: Drive Manager started
+2026-10-14 11:55:54,601 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-14 11:55:54,602 [INFO] drive_manager: Drive Manager stopped
+2026-10-14 11:55:56,204 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-14 11:55:56,206 [INFO] drive_manager: Drive Manager started
+2026-10-15 09:36:04,835 [ERROR] drive_manager: unhandled error ref=12e00276 on GET /api/dashboard
+  + Exception Group Traceback (most recent call last):
+  |   File "/usr/local/lib/python3.11/site-packages/starlette/_utils.py", line 77, in collapse_excgroups
+  |     yield
+  |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 186, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |   File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    |     with collapse_excgroups():
+    |   File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    |     raise exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/app/main.py", line 88, in gate
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    |     raise app_exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+    |     await route.handle(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    |     raw_response = await run_endpoint_function(
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
+    |     return await run_in_threadpool(dependant.call, **values)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/concurrency.py", line 39, in run_in_threadpool
+    |     return await anyio.to_thread.run_sync(func, *args)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/anyio/to_thread.py", line 65, in run_sync
+    |     return await get_async_backend().run_sync_in_worker_thread(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2706, in run_sync_in_worker_thread
+    |     return await future
+    |            ^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1100, in run
+    |     result = context.run(func, *args)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/app/routes/api.py", line 36, in dashboard
+    |     "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/app/routes/api.py", line 36, in <genexpr>
+    |     "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+    |                                                            ^^^^^^^^^^^^^^
+    | AttributeError: module 'app.mounts' has no attribute 'healthy'
+    +------------------------------------
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/usr/local/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 88, in gate
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/starlette/concurrency.py", line 39, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2706, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1100, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/routes/api.py", line 36, in dashboard
+    "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/routes/api.py", line 36, in <genexpr>
+    "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+                                                           ^^^^^^^^^^^^^^
+AttributeError: module 'app.mounts' has no attribute 'healthy'
+2026-10-15 09:36:10,110 [ERROR] drive_manager: unhandled error ref=96c0db5e on GET /api/dashboard
+  + Exception Group Traceback (most recent call last):
+  |   File "/usr/local/lib/python3.11/site-packages/starlette/_utils.py", line 77, in collapse_excgroups
+  |     yield
+  |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 186, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |   File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    |     with collapse_excgroups():
+    |   File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    |     raise exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/app/main.py", line 88, in gate
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    |     raise app_exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+    |     await route.handle(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    |     raw_response = await run_endpoint_function(
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
+    |     return await run_in_threadpool(dependant.call, **values)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/concurrency.py", line 39, in run_in_threadpool
+    |     return await anyio.to_thread.run_sync(func, *args)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/anyio/to_thread.py", line 65, in run_sync
+    |     return await get_async_backend().run_sync_in_worker_thread(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2706, in run_sync_in_worker_thread
+    |     return await future
+    |            ^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1100, in run
+    |     result = context.run(func, *args)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/app/routes/api.py", line 36, in dashboard
+    |     "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/app/routes/api.py", line 36, in <genexpr>
+    |     "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+    |                                                            ^^^^^^^^^^^^^^
+    | AttributeError: module 'app.mounts' has no attribute 'healthy'
+    +------------------------------------
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/usr/local/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 88, in gate
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/starlette/concurrency.py", line 39, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2706, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1100, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/routes/api.py", line 36, in dashboard
+    "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/routes/api.py", line 36, in <genexpr>
+    "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+                                                           ^^^^^^^^^^^^^^
+AttributeError: module 'app.mounts' has no attribute 'healthy'
+2026-10-15 10:10:42,340 [ERROR] drive_manager: unhandled error ref=74bca1e0 on GET /api/dashboard
+  + Exception Group Traceback (most recent call last):
+  |   File "/usr/local/lib/python3.11/site-packages/starlette/_utils.py", line 77, in collapse_excgroups
+  |     yield
+  |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 186, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |   File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    |     with collapse_excgroups():
+    |   File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    |     raise exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/app/main.py", line 88, in gate
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    |     raise app_exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+    |     await route.handle(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    |     raw_response = await run_endpoint_function(
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
+    |     return await run_in_threadpool(dependant.call, **values)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/concurrency.py", line 39, in run_in_threadpool
+    |     return await anyio.to_thread.run_sync(func, *args)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/anyio/to_thread.py", line 65, in run_sync
+    |     return await get_async_backend().run_sync_in_worker_thread(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2706, in run_sync_in_worker_thread
+    |     return await future
+    |            ^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1100, in run
+    |     result = context.run(func, *args)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/app/routes/api.py", line 36, in dashboard
+    |     "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/app/routes/api.py", line 36, in <genexpr>
+    |     "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+    |                                                            ^^^^^^^^^^^^^^
+    | AttributeError: module 'app.mounts' has no attribute 'healthy'
+    +------------------------------------
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/usr/local/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 88, in gate
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/starlette/concurrency.py", line 39, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2706, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1100, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/routes/api.py", line 36, in dashboard
+    "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/routes/api.py", line 36, in <genexpr>
+    "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+                                                           ^^^^^^^^^^^^^^
+AttributeError: module 'app.mounts' has no attribute 'healthy'
+2026-10-16 07:55:38,603 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 07:55:38,604 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 07:55:45,816 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 07:55:45,818 [INFO] drive_manager: Drive Manager started
+2026-10-16 07:55:45,845 [INFO] app.mounts: auto-mount 4TB: ok=False
+2026-10-16 07:55:50,138 [ERROR] drive_manager: unhandled error ref=54ab7176 on GET /api/dashboard
+  + Exception Group Traceback (most recent call last):
+  |   File "/usr/local/lib/python3.11/site-packages/starlette/_utils.py", line 77, in collapse_excgroups
+  |     yield
+  |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 186, in __call__
+  |     async with anyio.create_task_group() as task_group:
+  |   File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    |     with collapse_excgroups():
+    |   File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    |     raise exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/app/main.py", line 88, in gate
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    |     raise app_exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+    |     await route.handle(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+    |     await self.app(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    |     raise exc
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    |     raw_response = await run_endpoint_function(
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
+    |     return await run_in_threadpool(dependant.call, **values)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/starlette/concurrency.py", line 39, in run_in_threadpool
+    |     return await anyio.to_thread.run_sync(func, *args)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/anyio/to_thread.py", line 65, in run_sync
+    |     return await get_async_backend().run_sync_in_worker_thread(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2706, in run_sync_in_worker_thread
+    |     return await future
+    |            ^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1100, in run
+    |     result = context.run(func, *args)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/app/routes/api.py", line 36, in dashboard
+    |     "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/app/app/routes/api.py", line 36, in <genexpr>
+    |     "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+    |                                                            ^^^^^^^^^^^^^^
+    | AttributeError: module 'app.mounts' has no attribute 'healthy'
+    +------------------------------------
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/usr/local/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/usr/local/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 88, in gate
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/starlette/concurrency.py", line 39, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2706, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1100, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/routes/api.py", line 36, in dashboard
+    "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/routes/api.py", line 36, in <genexpr>
+    "healthy": sum(1 for m in mlist if m.get("status") and mounts.healthy(m["status"]))},
+                                                           ^^^^^^^^^^^^^^
+AttributeError: module 'app.mounts' has no attribute 'healthy'
+2026-10-16 07:59:35,614 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 07:59:35,614 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 07:59:37,156 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 07:59:37,157 [INFO] drive_manager: Drive Manager started
+2026-10-16 07:59:37,190 [INFO] app.mounts: auto-mount 4TB: ok=False
+2026-10-16 08:04:57,232 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 08:04:57,233 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 08:04:58,613 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 08:04:58,614 [INFO] drive_manager: Drive Manager started
+2026-10-16 08:04:58,638 [INFO] app.mounts: auto-mount 4TB: ok=False
+2026-10-16 08:19:58,964 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 08:19:58,965 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 08:20:00,697 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 08:20:00,698 [INFO] drive_manager: Drive Manager started
+2026-10-16 08:20:00,725 [INFO] app.mounts: auto-mount 4TB: ok=False
+2026-10-16 08:37:47,545 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 08:37:47,545 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 08:37:49,227 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 08:37:49,228 [INFO] drive_manager: Drive Manager started
+2026-10-16 08:37:49,748 [INFO] app.mounts: auto-mount 4TB: ok=True
+2026-10-16 08:45:47,485 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 08:45:47,485 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 08:45:49,257 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 08:45:49,258 [INFO] drive_manager: Drive Manager started
+2026-10-16 08:49:46,311 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 08:49:46,312 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 08:49:47,858 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 08:49:47,859 [INFO] drive_manager: Drive Manager started
+2026-10-16 08:55:40,422 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 08:55:40,423 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 08:55:42,182 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 08:55:42,183 [INFO] drive_manager: Drive Manager started
+2026-10-16 08:56:59,111 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 08:56:59,112 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 08:57:00,516 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 08:57:00,517 [INFO] drive_manager: Drive Manager started
+2026-10-16 09:12:14,814 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 09:12:14,814 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 09:12:16,647 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 09:12:16,648 [INFO] drive_manager: Drive Manager started
+2026-10-16 09:17:45,064 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 09:17:45,064 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 09:17:46,592 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 09:17:46,593 [INFO] drive_manager: Drive Manager started
+2026-10-16 09:19:03,817 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 09:19:03,818 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 09:19:05,551 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 09:19:05,552 [INFO] drive_manager: Drive Manager started
+2026-10-16 09:27:42,091 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 09:27:42,091 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 09:27:43,689 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 09:27:43,691 [INFO] drive_manager: Drive Manager started
+2026-10-16 09:28:25,542 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 09:28:25,542 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 09:28:27,553 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 09:28:27,554 [INFO] drive_manager: Drive Manager started
+2026-10-16 09:30:40,745 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 09:30:40,746 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 09:30:42,770 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 09:30:42,771 [INFO] drive_manager: Drive Manager started
+2026-10-16 09:35:02,514 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 09:35:02,515 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 09:35:04,516 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 09:35:04,518 [INFO] drive_manager: Drive Manager started
+2026-10-16 09:39:50,713 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 09:39:50,714 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 09:39:52,844 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 09:39:52,845 [INFO] drive_manager: Drive Manager started
+2026-10-16 09:44:45,074 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 09:44:45,074 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 09:44:47,086 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 09:44:47,087 [INFO] drive_manager: Drive Manager started
+2026-10-16 09:49:12,646 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 09:49:12,647 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 09:49:14,690 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 09:49:14,691 [INFO] drive_manager: Drive Manager started
+2026-10-16 09:53:26,310 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 09:53:26,310 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 09:53:28,358 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 09:53:28,359 [INFO] drive_manager: Drive Manager started
+2026-10-16 09:54:10,778 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 09:54:10,778 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 09:54:12,751 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 09:54:12,753 [INFO] drive_manager: Drive Manager started
+2026-10-16 09:58:36,472 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 09:58:36,473 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 09:58:38,450 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 09:58:38,452 [INFO] drive_manager: Drive Manager started
+2026-10-16 10:08:33,607 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 10:08:33,608 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 10:08:35,132 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 10:08:35,133 [INFO] drive_manager: Drive Manager started
+2026-10-16 10:11:38,320 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 10:11:38,321 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 10:11:39,893 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 10:11:39,894 [INFO] drive_manager: Drive Manager started
+2026-10-16 10:17:51,802 [WARNING] app.routes.auth: failed login for 'admin' from 172.23.0.1
+2026-10-16 10:20:53,688 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 10:20:53,688 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 10:20:55,468 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 10:20:55,469 [INFO] drive_manager: Drive Manager started
+2026-10-16 10:27:49,973 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 10:27:49,974 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 10:27:51,578 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 10:27:51,579 [INFO] drive_manager: Drive Manager started
+2026-10-16 10:28:25,006 [WARNING] app.routes.auth: failed login for 'admin' from 172.23.0.1
+2026-10-16 10:28:32,453 [WARNING] app.routes.auth: failed login for 'admin' from 172.23.0.1
+2026-10-16 10:31:20,078 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 10:31:20,078 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 10:31:21,616 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 10:31:21,618 [INFO] drive_manager: Drive Manager started
+2026-10-16 10:31:55,687 [WARNING] app.routes.auth: failed login for 'admin' from 172.23.0.1
+2026-10-16 10:32:48,348 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 10:32:48,349 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 10:32:49,960 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 10:32:49,961 [INFO] drive_manager: Drive Manager started
+2026-10-16 10:36:06,920 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 10:36:06,920 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 10:36:08,490 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 10:36:08,491 [INFO] drive_manager: Drive Manager started
+2026-10-16 10:37:54,056 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 10:37:54,057 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 10:37:55,598 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 10:37:55,599 [INFO] drive_manager: Drive Manager started
+2026-10-16 10:41:42,278 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 10:41:42,279 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 10:41:43,794 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 10:41:43,795 [INFO] drive_manager: Drive Manager started
+2026-10-16 10:43:31,801 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 10:43:31,801 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 10:43:33,356 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 10:43:33,357 [INFO] drive_manager: Drive Manager started
+2026-10-16 10:51:13,292 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 10:51:13,293 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 10:51:14,938 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 10:51:14,940 [INFO] drive_manager: Drive Manager started

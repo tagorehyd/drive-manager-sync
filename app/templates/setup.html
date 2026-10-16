@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Drive Manager · Setup{% endblock %}
+{% block body %}
+<main class="max-w-sm mx-auto mt-24 px-4">
+  <h1 class="text-2xl font-semibold mb-2 text-center">Welcome to Drive Manager</h1>
+  <p class="text-center text-sm text-slate-500 mb-6">Create the administrator account.</p>
+  <form method="post" action="/setup" class="card space-y-4">
+    {% if error %}<p class="text-red-700 bg-red-50 border border-red-200 rounded p-2 text-sm">{{ error }}</p>{% endif %}
+    <label class="block"><span class="lbl">Setup password</span>
+      <input class="inp font-mono" type="password" name="setup_password" autocomplete="off" required autofocus>
+      <span class="text-xs text-slate-500">Printed in the container log (<code>docker compose logs drive-manager</code>) and stored in <code>/config/setup-password</code>.</span></label>
+    <label class="block"><span class="lbl">Username</span>
+      <input class="inp" name="username" value="{{ username }}" autocomplete="username" required></label>
+    <label class="block"><span class="lbl">Password (min. 8 characters)</span>
+      <input class="inp" type="password" name="password" minlength="8" autocomplete="new-password" required></label>
+    <label class="block"><span class="lbl">Confirm password</span>
+      <input class="inp" type="password" name="confirm" minlength="8" autocomplete="new-password" required></label>
+    <button class="btn btn-primary w-full">Create account</button>
+  </form>
+</main>
+{% endblock %}

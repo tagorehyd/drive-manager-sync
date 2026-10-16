@@ -1,0 +1,33 @@
+services:
+  drive-manager:
+    build: .
+    container_name: drive-manager
+    restart: unless-stopped
+    # Root in the container + host PID namespace: required for nsenter into the host and for mounting.
+    pid: host
+    cap_add:
+      - ALL
+    security_opt:
+      - apparmor:unconfined
+    devices:
+      - /dev/fuse
+    environment:
+      TZ: ${TZ:-UTC}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      COOKIE_SAMESITE: ${COOKIE_SAMESITE:-lax}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      SETUP_PASSWORD: ${SETUP_PASSWORD:-}
+      SESSION_DAYS: ${SESSION_DAYS:-7}
+      RESET_AUTH: ${RESET_AUTH:-false}
+      BROWSE_ROOTS: ${BROWSE_ROOTS:-}
+      OPENAI_COMPATIBLE_API_KEY: ${OPENAI_COMPATIBLE_API_KEY:-}
+      OPENAI_COMPATIBLE_BASE_URL: ${OPENAI_COMPATIBLE_BASE_URL:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+    ports:
+      - "${WEBUI_PORT:-8080}:8080"
+    volumes:
+      - ./config:/config
+      - ./data:/data
+      - /mnt:/mnt:rshared
+      - /srv:/srv:rshared
