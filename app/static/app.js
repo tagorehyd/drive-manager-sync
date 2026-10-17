@@ -70,6 +70,7 @@ const loaders = {};
 let currentTab = $("main").dataset.currentTab;
 
 function showTab(tab, push = true) {
+  stopSmbLogPoll();
   currentTab = tab;
   $$("section[data-section]").forEach((s) => s.classList.toggle("hidden", s.dataset.section !== tab));
   $$("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.tab === tab));
@@ -940,7 +941,27 @@ $("#roots-form").addEventListener("submit", async (e) => {
   await act(e.submitter, () => api("PUT", "/api/settings/browse-roots", { roots }), "Saved");
 });
 
-// ------------------------------------------------------------ servers
+// ------------------------------------------------------------ servers (SMB)
+let smbShares = [];
+let smbLogTimer = null;
+
+function stopSmbLogPoll() {
+  if (smbLogTimer) { clearInterval(smbLogTimer); smbLogTimer = null; }
+}
+
+async function fetchSmbLogs() {
+  try {
+    const d = await api("GET", "/api/servers/smb/logs");
+    $("#smb-logs-out").textContent = d.logs || "(no logs)";
+    $("#smb-logs-out").scrollTop = $("#smb-logs-out").scrollHeight;
+  } catch { /* ignore */ }
+}
+
+function startSmbLogPoll() {
+  stopSmbLogPoll();
+  smbLogTimer = setInterval(fetchSmbLogs, 3000);
+}
+
 loaders.servers = async () => {
   const [smb, ftp, webdav] = await Promise.all([
     api("GET", "/api/servers/smb"),
@@ -953,26 +974,173 @@ loaders.servers = async () => {
 };
 
 function renderSmb(d) {
-  const status = d.service_active ? "active" : "inactive";
-  const cls = d.service_active ? "badge ok" : "badge bad";
-  $("#smb-status").className = cls;
-  $("#smb-status").textContent = d.installed ? (d.service_active ? "Active" : "Stopped") : "Not installed";
+  stopSmbLogPoll();
+  const state = d.state;
+  const cfg = d.config || {};
 
-  const installed = d.installed;
-  const running = d.service_active;
-  $("#smb-install").style.display = installed ? "none" : "inline-block";
-  $("#smb-start").style.display = (installed && !running) ? "inline-block" : "none";
-  $("#smb-stop").style.display = (installed && running) ? "inline-block" : "none";
-  $("#smb-restart").style.display = installed ? "inline-block" : "none";
+  $("#smb-state-not-installed").classList.add("hidden");
+  $("#smb-state-configure").classList.add("hidden");
+  $("#smb-state-running").classList.add("hidden");
 
-  const body = $("#smb-shares-body");
-  body.innerHTML = d.shares.map((s) => `<tr>
-    <td><b>${esc(s.name)}</b></td>
-    <td class="font-mono text-xs break-all">${esc(s.path)}</td>
-    <td>${s.exists ? '<span class="badge ok">yes</span>' : '<span class="badge bad">no</span>'}</td>
-    <td class="whitespace-nowrap"><button class="btn btn-sm btn-danger" data-smb-rm="${esc(s.name)}">Remove</button></td>
-  </tr>`).join("");
-  $("#smb-users-list").textContent = d.users && d.users.length ? d.users.join(", ") : "(none)";
+  const badge = $("#smb-state-badge");
+  if (state === "not_installed") {
+    $("#smb-state-not-installed").classList.remove("hidden");
+    badge.className = "badge muted";
+    badge.textContent = "Not installed";
+  } else if (state === "running") {
+    $("#smb-state-running").classList.remove("hidden");
+    badge.className = "badge ok";
+    badge.textContent = "Running";
+    $("#smb-running-status").textContent = d.container_status || "running";
+    $("#smb-running-status").className = "badge ok";
+    fetchSmbLogs();
+    startSmbLogPoll();
+  } else {
+    $("#smb-state-configure").classList.remove("hidden");
+    badge.className = d.running ? "badge ok" : "badge bad";
+    badge.textContent = d.running ? "Running" : "Stopped";
+    const form = $("#smb-config-form");
+    form.elements.username.value = cfg.username || "";
+    form.elements.password.value = cfg.password || "";
+    smbShares = (cfg.shares || []).map((s) => ({ name: s.name || "", path: s.path || "" }));
+    if (smbShares.length === 0) smbShares = [{ name: "", path: "" }];
+    renderSmbShareRows();
+    updateSmbStartButton();
+    $("#smb-config-error").textContent = "";
+  }
+}
+
+function renderSmbShareRows() {
+  const container = $("#smb-shares-rows");
+  container.innerHTML = smbShares.map((s, i) => `
+    <div class="smb-share-row flex flex-wrap gap-2 items-end" data-index="${i}">
+      <div class="flex-1 min-w-0">
+        <label class="block text-xs text-slate-500 mb-1">Host path</label>
+        <div class="flex gap-2">
+          <input class="inp flex-1" name="share_path" id="smb-sp-${i}" required placeholder="/mnt/share" value="${esc(s.path)}">
+          <button type="button" class="btn btn-sm" data-browse="#smb-sp-${i}">Browse</button>
+        </div>
+      </div>
+      <div class="min-w-[140px]">
+        <label class="block text-xs text-slate-500 mb-1">Share name</label>
+        <input class="inp" name="share_name" required placeholder="media" value="${esc(s.name)}">
+      </div>
+      <button type="button" class="btn btn-sm btn-danger" data-remove-share>Remove</button>
+    </div>
+  `).join("");
+}
+
+function updateSmbStartButton() {
+  const form = $("#smb-config-form");
+  const user = form.elements.username.value.trim();
+  const pass = form.elements.password.value;
+  let valid = Boolean(user && pass && smbShares.length > 0);
+  for (const s of smbShares) {
+    if (!s.name.trim() || !s.path.trim()) valid = false;
+  }
+  $("#smb-start").disabled = !valid;
+}
+
+function gatherSmbConfig() {
+  const form = $("#smb-config-form");
+  const shares = [];
+  $("#smb-shares-rows").querySelectorAll(".smb-share-row").forEach((row) => {
+    shares.push({
+      name: row.querySelector('[name="share_name"]').value,
+      path: row.querySelector('[name="share_path"]').value,
+    });
+  });
+  return {
+    username: form.elements.username.value,
+    password: form.elements.password.value,
+    shares,
+  };
+}
+
+$("#smb-install").addEventListener("click", async () => {
+  const r = await act(null, () => api("POST", "/api/servers/smb/install"), "Image pulled");
+  if (r) loaders.servers();
+});
+
+$("#smb-add-share").addEventListener("click", () => {
+  smbShares.push({ name: "", path: "" });
+  renderSmbShareRows();
+  updateSmbStartButton();
+});
+
+$("#smb-shares-rows").addEventListener("input", (e) => {
+  if (e.target.name === "share_path" || e.target.name === "share_name") updateSmbStartButton();
+});
+
+$("#smb-shares-rows").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-remove-share]");
+  if (!b) return;
+  if (smbShares.length <= 1) { toast("At least one share is required", "error"); return; }
+  const row = b.closest(".smb-share-row");
+  smbShares.splice(Number(row.dataset.index), 1);
+  renderSmbShareRows();
+  updateSmbStartButton();
+});
+
+$("#smb-config-form").addEventListener("input", updateSmbStartButton);
+
+$("#smb-start").addEventListener("click", async () => {
+  const cfg = gatherSmbConfig();
+  const r = await act(null, () => api("POST", "/api/servers/smb/start", cfg), "SMB started");
+  if (r) loaders.servers();
+});
+
+$("#smb-stop").addEventListener("click", async () => {
+  const r = await act(null, () => api("POST", "/api/servers/smb/service", { action: "stop" }), "SMB stopped");
+  if (r) loaders.servers();
+});
+
+$("#smb-restart").addEventListener("click", async () => {
+  const cfg = gatherSmbConfig();
+  const r = await act(null, () => api("POST", "/api/servers/smb/redeploy", cfg), "SMB redeployed");
+  if (r) loaders.servers();
+});
+
+$("#smb-edit-config").addEventListener("click", async () => {
+  stopSmbLogPoll();
+  try {
+    const d = await api("GET", "/api/servers/smb");
+    const cfg = d.config || {};
+    const form = $("#smb-config-form");
+    form.elements.username.value = cfg.username || "";
+    form.elements.password.value = cfg.password || "";
+    smbShares = (cfg.shares || []).map((s) => ({ name: s.name || "", path: s.path || "" }));
+    if (smbShares.length === 0) smbShares = [{ name: "", path: "" }];
+    renderSmbShareRows();
+    updateSmbStartButton();
+    $("#smb-config-error").textContent = "";
+    $("#smb-state-running").classList.add("hidden");
+    $("#smb-state-configure").classList.remove("hidden");
+    const badge = $("#smb-state-badge");
+    badge.className = "badge ok";
+    badge.textContent = "Editing";
+  } catch (e) { toast(e.message, "error"); }
+});
+
+$("#smb-refresh").addEventListener("click", loaders.servers);
+$("#smb-logs-refresh").addEventListener("click", fetchSmbLogs);
+
+// Server service actions (install, start, stop, restart)
+function serverAction(apiPath, action, onSuccess) {
+  return async () => {
+    const r = await act(null, () => api("POST", apiPath, { action }), `${action} ${apiPath.split("/").pop()}`);
+    if (r) {
+      if (onSuccess) onSuccess(r);
+      loaders.servers();
+    }
+  };
+}
+
+function installAction(apiPath) {
+  return async () => {
+    const r = await act(null, () => api("POST", apiPath), `Install ${apiPath.split("/").pop()}`);
+    if (r) { loaders.servers(); }
+  };
 }
 
 function renderFtp(d) {
@@ -1020,64 +1188,6 @@ function renderWebdav(d) {
   </tr>`).join("");
   $("#webdav-users-list").textContent = d.users && d.users.length ? d.users.join(", ") : "(none)";
 }
-
-// Server service actions (install, start, stop, restart)
-function serverAction(apiPath, action, onSuccess) {
-  return async () => {
-    const r = await act(null, () => api("POST", apiPath, { action }), `${action} ${apiPath.split("/").pop()}`);
-    if (r) {
-      if (onSuccess) onSuccess(r);
-      loaders.servers();
-    }
-  };
-}
-
-function installAction(apiPath) {
-  return async () => {
-    const r = await act(null, () => api("POST", apiPath), `Install ${apiPath.split("/").pop()}`);
-    if (r) { loaders.servers(); }
-  };
-}
-
-// SMB buttons
-$("#smb-install").addEventListener("click", installAction("/api/servers/smb/install"));
-$("#smb-start").addEventListener("click", serverAction("/api/servers/smb/service", "start"));
-$("#smb-stop").addEventListener("click", serverAction("/api/servers/smb/service", "stop"));
-$("#smb-restart").addEventListener("click", serverAction("/api/servers/smb/service", "restart"));
-$("#smb-refresh").addEventListener("click", loaders.servers);
-
-$("#smb-share-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  const body = {
-    name: fd.get("name"),
-    path: fd.get("path"),
-  };
-  const r = await act(e.submitter, () => api("POST", "/api/servers/smb/shares", body), "Share added");
-  if (r) { e.target.reset(); loaders.servers(); }
-});
-
-$("#smb-shares-body").addEventListener("click", async (e) => {
-  const b = e.target.closest("[data-smb-rm]");
-  if (!b) return;
-  const name = b.dataset.smbRm;
-  if (!(await typedConfirm("Remove SMB share", `Remove share "${name}"?`, "REMOVE"))) return;
-  const r = await act(b, () => api("DELETE", `/api/servers/smb/shares/${encodeURIComponent(name)}`), "Share removed");
-  if (r) loaders.servers();
-});
-
-// SMB users
-$("#smb-user-add").addEventListener("click", async (e) => {
-  const name = $("#smb-user-name").value.trim();
-  const pass = $("#smb-user-pass").value;
-  if (!name || !pass) { toast("Username and password required", "error"); return; }
-  const r = await act(e.target, () => api("POST", "/api/servers/smb/users", { username: name, password: pass }), "User added");
-  if (r) {
-    $("#smb-user-name").value = "";
-    $("#smb-user-pass").value = "";
-    loaders.servers();
-  }
-});
 
 // FTP buttons
 $("#ftp-install").addEventListener("click", installAction("/api/servers/ftp/install"));

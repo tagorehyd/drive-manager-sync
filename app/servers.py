@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import time
+from pathlib import Path
 from typing import Any
 
 import docker
@@ -15,7 +16,7 @@ log = logging.getLogger(__name__)
 
 FTP_CONTAINER = "drive-manager-ftp"
 WEBDAV_CONTAINER_PREFIX = "drive-manager-webdav"
-SMB_CONTAINER = "drive-manager-smb"
+SMB_CONTAINER = "samba"
 
 FTP_IMAGE = "ftp-server-arm64:latest"
 WEBDAV_IMAGE = "sentanu/caddy-webdav:latest"
@@ -424,193 +425,164 @@ def list_webdav_users() -> list[str]:
 
 # ---------------------------------------------------------------- SMB config persistence
 
-def _smb_config() -> dict[str, Any]:
-    return config.load(SMB_CONFIG_KEY) or {"shares": [], "users": []}
+SMB_COMPOSE_DIR_NAME = "smb-server"
 
 
-def _save_smb_config(data: dict[str, Any]) -> None:
-    config.update(SMB_CONFIG_KEY, lambda d: d.update(data))
+def smb_compose_dir() -> Path:
+    d = config.DATA_DIR / SMB_COMPOSE_DIR_NAME
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def smb_compose_file() -> Path:
+    return smb_compose_dir() / "docker-compose.yml"
+
+
+def smb_compose_exists() -> bool:
+    return smb_compose_file().exists()
+
+
+def smb_load_config() -> dict[str, Any]:
+    return config.load(SMB_CONFIG_KEY) or {"username": "", "password": "", "shares": []}
+
+
+def smb_save_config(username: str, password: str, shares: list[dict[str, Any]]) -> None:
+    config.update(SMB_CONFIG_KEY, lambda d: d.update({"username": username, "password": password, "shares": shares}))
+
+
+def smb_build_compose_text(username: str, password: str, shares: list[dict[str, Any]]) -> str:
+    volume_lines = "\n".join(f"      - {s['path']}:/shared/{s['name']}" for s in shares)
+    return (
+        "services:\n"
+        "  samba:\n"
+        "    image: dockurr/samba\n"
+        "    container_name: samba\n"
+        "    environment:\n"
+        '      NAME: "shared"\n'
+        f'      USER: "{username}"\n'
+        f'      PASS: "{password}"\n'
+        "    ports:\n"
+        "      - 445:445\n"
+        "    volumes:\n"
+        f"{volume_lines}\n"
+    )
+
+
+def smb_write_compose(username: str, password: str, shares: list[dict[str, Any]]) -> None:
+    smb_compose_dir()
+    smb_compose_file().write_text(smb_build_compose_text(username, password, shares), encoding="utf-8")
+
+
+# ---------------------------------------------------------------- Validation
+
+def validate_smb_config(username: str, password: str, shares: list[dict[str, Any]]) -> tuple[str, str, list[dict[str, str]]]:
+    user = (username or "").strip()
+    if not user:
+        raise ServerError("Username is required")
+    pwd = password or ""
+    if not pwd:
+        raise ServerError("Password is required")
+    if not shares:
+        raise ServerError("At least one share is required")
+    clean_shares: list[dict[str, str]] = []
+    seen_names: set[str] = set()
+    seen_paths: set[str] = set()
+    for s in shares:
+        name = validate_share_name(s.get("name", ""))
+        path = validate_export_path(s.get("path", ""))
+        if name in seen_names:
+            raise ServerError(f"Duplicate share name: {name}")
+        if path in seen_paths:
+            raise ServerError(f"Duplicate host path: {path}")
+        seen_names.add(name)
+        seen_paths.add(path)
+        clean_shares.append({"name": name, "path": path})
+    return user, pwd, clean_shares
 
 
 # ---------------------------------------------------------------- SMB operations
 
-def list_smb_shares() -> list[dict[str, Any]]:
-    shares = _smb_config().get("shares", [])
-    for share in shares:
-        share["exists"] = os.path.exists(share["path"])
-    return shares
+def smb_pull_image() -> None:
+    try:
+        _docker_client().images.get(SMB_IMAGE)
+    except docker.errors.ImageNotFound:
+        log.info("Pulling SMB image %s", SMB_IMAGE)
+        _docker_client().images.pull(SMB_IMAGE)
 
 
-def write_smb_config_to_container(shares: list[dict[str, Any]], users: list[dict[str, str]]) -> None:
-    """Recreate the SMB container with shares and users."""
+def smb_image_present() -> bool:
+    try:
+        _docker_client().images.get(SMB_IMAGE)
+        return True
+    except docker.errors.ImageNotFound:
+        return False
+    except Exception:
+        return False
+
+
+def smb_status() -> dict[str, Any]:
+    if not smb_image_present():
+        return {"state": "not_installed", "installed": False, "running": False, "config": smb_load_config()}
+    cfg = smb_load_config()
+    c = _get_container(SMB_CONTAINER)
+    if not c:
+        return {"state": "configured", "installed": True, "running": False, "config": cfg, "container_status": None}
+    try:
+        c.reload()
+    except Exception:
+        return {"state": "configured", "installed": True, "running": False, "config": cfg, "container_status": None}
+    running = c.status == "running"
+    if running:
+        return {"state": "running", "installed": True, "running": True, "config": cfg, "container_status": c.status}
+    return {"state": "configured", "installed": True, "running": False, "config": cfg, "container_status": c.status}
+
+
+def smb_start(username: str, password: str, shares: list[dict[str, Any]]) -> None:
+    user, pwd, clean_shares = validate_smb_config(username, password, shares)
+    smb_save_config(user, pwd, clean_shares)
+    smb_write_compose(user, pwd, clean_shares)
     c = _get_container(SMB_CONTAINER)
     if c:
         c.remove(force=True)
-
-    env: dict[str, str] = {}
-    volumes: dict[str, dict[str, str]] = {}
-
-    # dockurr/samba uses NAME for first share and auto-detects additional shares from /srv/N mounts
-    if shares:
-        env["NAME"] = shares[0]["name"]
-    else:
-        env["NAME"] = "unused"
-
-    # Single user (taken before starting the container)
-    if users:
-        env["USER"] = users[0]["username"]
-        env["PASS"] = users[0]["password"]
-    else:
-        env["USER"] = "samba"
-        env["PASS"] = "samba"
-
-    for i, share in enumerate(shares, start=1):
-        volumes[share["path"]] = {"bind": f"/srv/{i}", "mode": "rw"}
-
+    volumes = {s["path"]: {"bind": f"/shared/{s['name']}", "mode": "rw"} for s in clean_shares}
     _docker_client().containers.run(
         SMB_IMAGE,
         name=SMB_CONTAINER,
-        environment=env,
+        environment={"NAME": "shared", "USER": user, "PASS": pwd},
         volumes=volumes,
-        network_mode="host",
-        restart_policy={"Name": "unless-stopped"},
         detach=True,
     )
 
 
-def add_smb_share(data: dict[str, Any]) -> dict[str, Any]:
-    name = validate_share_name(data["name"])
-    path = validate_export_path(data["path"])
-    opts = data.get("options", {})
-
-    cfg = _smb_config()
-    shares = cfg.get("shares", [])
-    for share in shares:
-        if share["name"] == name:
-            share["path"] = path
-            share["options"] = opts
-            break
-    else:
-        shares.append({"name": name, "path": path, "options": opts})
-
-    _save_smb_config({"shares": shares, "users": cfg.get("users", [])})
-    write_smb_config_to_container(shares, cfg.get("users", []))
-    return {"name": name, "path": path, "options": opts}
-
-
-def remove_smb_share(name: str) -> None:
-    cfg = _smb_config()
-    shares = [s for s in cfg.get("shares", []) if s["name"] != name]
-    _save_smb_config({"shares": shares, "users": cfg.get("users", [])})
-    write_smb_config_to_container(shares, cfg.get("users", []))
-
-
-def smb_service_action(action: str) -> dict[str, Any]:
+def smb_stop() -> None:
     c = _get_container(SMB_CONTAINER)
-    if not c:
-        ensure_smb_packages()
-        write_smb_config_to_container(_smb_config().get("shares", []), _smb_config().get("users", []))
-        c = _get_container(SMB_CONTAINER)
-        if action == "stop":
-            c.stop()
-        return {"ok": True}
-
-    if action == "start":
-        c.start()
-    elif action == "stop":
-        c.stop()
-    elif action == "restart":
-        c.restart()
-    return {"ok": True}
-
-
-def smb_service_status() -> dict[str, Any]:
-    c = _get_container(SMB_CONTAINER)
-    if not c:
-        return {"stdout": "inactive"}
-    try:
-        c.reload()
-    except Exception:
-        return {"stdout": "inactive"}
-    running = c.status == "running"
-    return {"stdout": "active" if running else "inactive"}
-
-
-# ---------------------------------------------------------------- SMB users
-
-def set_smb_password(username: str, password: str) -> dict[str, Any]:
-    ensure_smb_packages()
-    c = _get_container(SMB_CONTAINER)
-    if not c:
-        write_smb_config_to_container(_smb_config().get("shares", []), [])
-        c = _get_container(SMB_CONTAINER)
-        if not c:
-            return {"ok": False, "stderr": "SMB container could not be created"}
-
-    for _ in range(20):
+    if c:
         try:
-            c.reload()
+            c.stop()
         except Exception:
             pass
-        if c.status == "running":
-            break
-        time.sleep(0.5)
-
-    if c.status != "running":
-        return {"ok": False, "stderr": "SMB container not running"}
-
-    # smbpasswd -a needs a TTY; run Python pty script inside container
-    py = (
-        "import pty,os,time\n"
-        "m,s=pty.openpty()\n"
-        "p=os.fork()\n"
-        "if p==0:\n"
-        "    os.setsid(); os.close(m)\n"
-        "    os.dup2(s,0); os.dup2(s,1); os.dup2(s,2); os.close(s)\n"
-        "    os.execvp('smbpasswd',['smbpasswd','-a',USR])\n"
-        "else:\n"
-        "    os.close(s)\n"
-        "    time.sleep(0.3)\n"
-        "    os.write(m,('%s\\n'%PWD).encode())\n"
-        "    time.sleep(0.3)\n"
-        "    os.write(m,('%s\\n'%PWD).encode())\n"
-        "    time.sleep(1.0)\n"
-        "    out=b''\n"
-        "    while True:\n"
-        "        try:\n"
-        "            c=os.read(m,4096)\n"
-        "            if not c: break\n"
-        "            out+=c\n"
-        "        except OSError: break\n"
-        "    os.close(m)\n"
-        "    _,st=os.waitpid(p,0)\n"
-        "    print('RC:%d'%os.WEXITSTATUS(st))\n"
-        "    print('OUT:%s'%out.decode(errors='replace'))\n"
-    )
-    py = py.replace("USR", repr(username)).replace("PWD", repr(password))
-    import base64
-    encoded = base64.b64encode(py.encode()).decode()
-    res = c.exec_run(f"echo {encoded} | base64 -d | python3")
-    if res.exit_code == 0:
-        cfg = _smb_config()
-        users = cfg.get("users", [])
-        if not any(u["username"] == username for u in users):
-            users.append({"username": username, "password": password})
-            _save_smb_config({"shares": cfg.get("shares", []), "users": users})
-    return {"ok": res.exit_code == 0, "stderr": res.output.decode(errors="replace") if res.output else ""}
+        try:
+            c.remove(force=True)
+        except Exception:
+            pass
 
 
-def delete_smb_user(username: str) -> dict[str, Any]:
+def smb_redeploy(username: str, password: str, shares: list[dict[str, Any]]) -> None:
+    user, pwd, clean_shares = validate_smb_config(username, password, shares)
+    smb_save_config(user, pwd, clean_shares)
+    smb_write_compose(user, pwd, clean_shares)
+    smb_stop()
+    smb_start(user, pwd, clean_shares)
+
+
+def smb_logs() -> str:
     c = _get_container(SMB_CONTAINER)
     if not c:
-        return {"ok": False, "stderr": "SMB container not running"}
-    res = c.exec_run(f"smbpasswd -x {username}")
-    return {"ok": res.exit_code == 0, "stderr": res.output.decode(errors="replace") if res.output else ""}
-
-
-def list_smb_users() -> list[str]:
-    cfg = _smb_config()
-    return [u.get("username", "") for u in cfg.get("users", []) if u.get("username")]
+        return ""
+    try:
+        return c.logs(tail=200).decode(errors="replace")
+    except Exception:
+        return ""
 
 
 # ---------------------------------------------------------------- Status aggregation

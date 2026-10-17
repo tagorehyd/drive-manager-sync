@@ -739,38 +739,45 @@ def delete_ftp_user(username: str):
 
 # ---------------------------------------------------------------- SMB server
 
-class SmbShareIn(BaseModel):
-    name: str
-    path: str
-    options: dict[str, Any] = Field(default_factory=dict)
+class SmbConfigIn(BaseModel):
+    username: str = ""
+    password: str = ""
+    shares: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class SmbServiceIn(BaseModel):
     action: str
 
 
-class SmbUserIn(BaseModel):
-    username: str
-    password: str
-
-
 @router.get("/servers/smb")
 def smb_status():
-    return servers.smb_server_status()
+    return servers.smb_status()
 
 
-@router.post("/servers/smb/shares")
-def add_smb_share(body: SmbShareIn):
+@router.post("/servers/smb/install")
+def smb_install():
     try:
-        return {"ok": True, "share": servers.add_smb_share(body.model_dump())}
+        servers.smb_pull_image()
+    except Exception as exc:
+        raise _bad(exc)
+    return {"ok": True}
+
+
+@router.post("/servers/smb/config")
+def smb_config(body: SmbConfigIn):
+    try:
+        user, pwd, shares = servers.validate_smb_config(body.username, body.password, body.shares)
+        servers.smb_save_config(user, pwd, shares)
+        servers.smb_write_compose(user, pwd, shares)
     except (ValueError, KeyError) as exc:
         raise _bad(exc)
+    return {"ok": True}
 
 
-@router.delete("/servers/smb/shares/{name}")
-def remove_smb_share(name: str):
+@router.post("/servers/smb/start")
+def smb_start(body: SmbConfigIn):
     try:
-        servers.remove_smb_share(name)
+        servers.smb_start(body.username, body.password, body.shares)
     except (ValueError, KeyError) as exc:
         raise _bad(exc)
     return {"ok": True}
@@ -778,39 +785,27 @@ def remove_smb_share(name: str):
 
 @router.post("/servers/smb/service")
 def smb_service(body: SmbServiceIn):
+    if body.action != "stop":
+        raise HTTPException(404, "unknown action")
     try:
-        res = servers.smb_service_action(body.action)
-    except ValueError as exc:
-        raise _bad(exc)
-    return {"ok": res["ok"], "stderr": res.get("stderr", "")}
-
-
-@router.post("/servers/smb/install")
-def smb_install():
-    try:
-        servers.ensure_smb_packages()
-        servers.write_smb_config_to_container(servers._smb_config().get("shares", []), servers._smb_config().get("users", []))
+        servers.smb_stop()
     except Exception as exc:
         raise _bad(exc)
     return {"ok": True}
 
 
-@router.post("/servers/smb/users")
-def add_smb_user(body: SmbUserIn):
+@router.post("/servers/smb/redeploy")
+def smb_redeploy(body: SmbConfigIn):
     try:
-        res = servers.set_smb_password(body.username, body.password)
+        servers.smb_redeploy(body.username, body.password, body.shares)
     except (ValueError, KeyError) as exc:
         raise _bad(exc)
-    return {"ok": res["ok"], "stderr": res.get("stderr", "")}
+    return {"ok": True}
 
 
-@router.delete("/servers/smb/users/{username}")
-def delete_smb_user(username: str):
-    try:
-        res = servers.delete_smb_user(username)
-    except (ValueError, KeyError) as exc:
-        raise _bad(exc)
-    return {"ok": res["ok"], "stderr": res.get("stderr", "")}
+@router.get("/servers/smb/logs")
+def smb_logs():
+    return {"logs": servers.smb_logs()}
 
 
 # ---------------------------------------------------------------- WebDAV server
