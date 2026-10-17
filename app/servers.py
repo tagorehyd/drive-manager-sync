@@ -381,6 +381,13 @@ def set_smb_password(username: str, password: str) -> dict[str, Any]:
     import base64
     encoded = base64.b64encode(py.encode()).decode()
     res = c.exec_run(f"echo {encoded} | base64 -d | python3")
+    if res.exit_code == 0:
+        # Also track in config for display
+        cfg = _smb_config()
+        users = cfg.get("users", [])
+        if not any(u["username"] == username for u in users):
+            users.append({"username": username, "password": password})
+            _save_smb_config({"shares": cfg.get("shares", []), "users": users})
     return {"ok": res.exit_code == 0, "stderr": res.output.decode(errors="replace") if res.output else ""}
 
 
@@ -393,23 +400,8 @@ def delete_smb_user(username: str) -> dict[str, Any]:
 
 
 def list_smb_users() -> list[str]:
-    c = _get_container(SMB_CONTAINER)
-    if not c:
-        return []
-    try:
-        c.reload()
-    except Exception:
-        return []
-    if c.status != "running":
-        return []
-    res = c.exec_run("pdbedit -L")
-    if res.exit_code != 0:
-        return []
-    users = []
-    for line in res.output.decode(errors="replace").splitlines():
-        if ":" in line:
-            users.append(line.split(":")[0])
-    return users
+    cfg = _smb_config()
+    return [u.get("username", "") for u in cfg.get("users", []) if u.get("username")]
 
 
 # ---------------------------------------------------------------- Status aggregation

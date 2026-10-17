@@ -952,6 +952,15 @@ function renderNfs(d) {
   const cls = d.service_active ? "badge ok" : "badge bad";
   $("#nfs-status").className = cls;
   $("#nfs-status").textContent = d.installed ? (d.service_active ? "Active" : "Stopped") : "Not installed";
+
+  // Toggle button visibility based on state
+  const installed = d.installed;
+  const running = d.service_active;
+  $("#nfs-install").style.display = installed ? "none" : "inline-block";
+  $("#nfs-start").style.display = (installed && !running) ? "inline-block" : "none";
+  $("#nfs-stop").style.display = (installed && running) ? "inline-block" : "none";
+  $("#nfs-restart").style.display = installed ? "inline-block" : "none";
+
   const body = $("#nfs-exports-body");
   body.innerHTML = d.exports.map((e) => `<tr>
     <td class="font-mono text-xs break-all">${esc(e.path)}</td>
@@ -968,6 +977,15 @@ function renderSmb(d) {
   const cls = active ? "badge ok" : "badge bad";
   $("#smb-status").className = cls;
   $("#smb-status").textContent = d.installed ? (active ? "Active" : "Stopped") : "Not installed";
+
+  // Toggle button visibility based on state
+  const installed = d.installed;
+  const running = active;
+  $("#smb-install").style.display = installed ? "none" : "inline-block";
+  $("#smb-start").style.display = (installed && !running) ? "inline-block" : "none";
+  $("#smb-stop").style.display = (installed && running) ? "inline-block" : "none";
+  $("#smb-restart").style.display = installed ? "inline-block" : "none";
+
   const body = $("#smb-shares-body");
   body.innerHTML = d.shares.map((s) => `<tr>
     <td><b>${esc(s.name)}</b></td>
@@ -978,7 +996,7 @@ function renderSmb(d) {
     <td>${s.exists ? '<span class="badge ok">yes</span>' : '<span class="badge bad">no</span>'}</td>
     <td class="whitespace-nowrap"><button class="btn btn-sm btn-danger" data-smb-rm="${esc(s.name)}">Remove</button></td>
   </tr>`).join("");
-  $("#smb-users-list").textContent = d.users.join(", ") || "(none)";
+  $("#smb-users-list").textContent = d.users && d.users.length ? d.users.join(", ") : "(none)";
 }
 
 // Server service actions (install, start, stop, restart)

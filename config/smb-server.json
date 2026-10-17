@@ -10,5 +10,10 @@
       "path": "/mnt/testshare"
     }
   ],
-  "users": []
+  "users": [
+    {
+      "password": "pass123",
+      "username": "testuser"
+    }
+  ]
 }
