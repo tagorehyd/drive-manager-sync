@@ -549,6 +549,7 @@ def smb_start(username: str, password: str, shares: list[dict[str, Any]]) -> Non
         SMB_IMAGE,
         name=SMB_CONTAINER,
         environment={"NAME": "shared", "USER": user, "PASS": pwd},
+        ports={"445/tcp": 445},
         volumes=volumes,
         detach=True,
     )
