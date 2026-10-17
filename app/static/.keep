@@ -1,0 +1,280 @@
+let serversState = { initialized: false };
+
+function renderSmb(d) {
+  const status = $("#smb-status");
+  if (status) {
+    status.className = d.service_active ? "badge ok" : "badge bad";
+    status.textContent = d.installed ? (d.service_active ? "Active" : "Stopped") : "Not installed";
+  }
+
+  const installed = d.installed;
+  const running = d.service_active;
+  $("#smb-install").style.display = installed ? "none" : "inline-block";
+  $("#smb-start").style.display = (installed && !running) ? "inline-block" : "none";
+  $("#smb-stop").style.display = (installed && running) ? "inline-block" : "none";
+  $("#smb-restart").style.display = installed ? "inline-block" : "none";
+  const body = $("#smb-shares-body");
+  if (body) body.innerHTML = (d.shares || []).map((s) => `<tr><td><b>${s.name}</b></td><td class="font-mono text-xs break-all">${s.path}</td><td>${s.exists ? '<span class="badge ok">yes</span>' : '<span class="badge bad">no</span>'}</td><td class="whitespace-nowrap"><button class="btn btn-sm btn-danger" data-smb-rm="${s.name}">Remove</button></td></tr>`).join("");
+  const users = $("#smb-users-list");
+  if (users) users.textContent = d.users && d.users.length ? d.users.join(", ") : "(none)";
+}
+
+function renderFtp(d) {
+  const status = $("#ftp-status");
+  if (status) {
+    status.className = d.service_active ? "badge ok" : "badge bad";
+    status.textContent = d.installed ? (d.service_active ? "Active" : "Stopped") : "Not installed";
+  }
+  const installed = d.installed; const running = d.service_active;
+  $("#ftp-install").style.display = installed ? "none" : "inline-block";
+  $("#ftp-start").style.display = (installed && !running) ? "inline-block" : "none";
+  $("#ftp-stop").style.display = (installed && running) ? "inline-block" : "none";
+  $("#ftp-restart").style.display = installed ? "inline-block" : "none";
+  const body = $("#ftp-shares-body");
+  if (body) body.innerHTML = (d.shares || []).map((s) => `<tr><td><b>${s.name}</b></td><td class="font-mono text-xs break-all">${s.path}</td><td>${s.exists ? '<span class="badge ok">yes</span>' : '<span class="badge bad">no</span>'}</td><td class="whitespace-nowrap"><button class="btn btn-sm btn-danger" data-ftp-rm="${s.name}">Remove</button></td></tr>`).join("");
+  const users = $("#ftp-users-list");
+  if (users) users.textContent = d.users && d.users.length ? d.users.join(", ") : "(none)";
+}
+
+function renderWebdav(d) {
+  const status = $("#webdav-status");
+  if (status) {
+    status.className = d.service_active ? "badge ok" : "badge bad";
+    status.textContent = d.installed ? (d.service_active ? "Active" : "Stopped") : "Not installed";
+  }
+  const installed = d.installed; const running = d.service_active;
+  $("#webdav-install").style.display = installed ? "none" : "inline-block";
+  $("#webdav-start").style.display = (installed && !running) ? "inline-block" : "none";
+  $("#webdav-stop").style.display = (installed && running) ? "inline-block" : "none";
+  $("#webdav-restart").style.display = installed ? "inline-block" : "none";
+  const body = $("#webdav-shares-body");
+  if (body) body.innerHTML = (d.shares || []).map((s) => `<tr><td><b>${s.name}</b></td><td class="font-mono text-xs break-all">${s.path}</td><td>${s.exists ? '<span class="badge ok">yes</span>' : '<span class="badge bad">no</span>'}</td><td class="whitespace-nowrap"><button class="btn btn-sm btn-danger" data-webdav-rm="${s.name}">Remove</button></td></tr>`).join("");
+  const users = $("#webdav-users-list");
+  if (users) users.textContent = d.users && d.users.length ? d.users.join(", ") : "(none)";
+}
+
+export async function init(shared) {
+  if (serversState.initialized) return;
+  serversState.initialized = true;
+
+  async function refresh() {
+    const [smb, ftp, webdav] = await Promise.all([
+      shared.api("GET", "/api/servers/smb"),
+      shared.api("GET", "/api/servers/ftp"),
+      shared.api("GET", "/api/servers/webdav"),
+    ]);
+    renderSmb(smb); renderFtp(ftp); renderWebdav(webdav);
+  }
+
+  $("#smb-install").addEventListener("click", shared.installAction("/api/servers/smb/install"));
+  $("#smb-start").addEventListener("click", shared.serverAction("/api/servers/smb/service", "start"));
+  $("#smb-stop").addEventListener("click", shared.serverAction("/api/servers/smb/service", "stop"));
+  $("#smb-restart").addEventListener("click", shared.serverAction("/api/servers/smb/service", "restart"));
+  $("#smb-refresh").addEventListener("click", refresh);
+
+  $("#ftp-install").addEventListener("click", shared.installAction("/api/servers/ftp/install"));
+  $("#ftp-start").addEventListener("click", shared.serverAction("/api/servers/ftp/service", "start"));
+  $("#ftp-stop").addEventListener("click", shared.serverAction("/api/servers/ftp/service", "stop"));
+  $("#ftp-restart").addEventListener("click", shared.serverAction("/api/servers/ftp/service", "restart"));
+  $("#ftp-refresh").addEventListener("click", refresh);
+
+  $("#webdav-install").addEventListener("click", shared.installAction("/api/servers/webdav/install"));
+  $("#webdav-start").addEventListener("click", shared.serverAction("/api/servers/webdav/service", "start"));
+  $("#webdav-stop").addEventListener("click", shared.serverAction("/api/servers/webdav/service", "stop"));
+  $("#webdav-restart").addEventListener("click", shared.serverAction("/api/servers/webdav/service", "restart"));
+  $("#webdav-refresh").addEventListener("click", refresh);
+
+  $("#smb-share-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const body = { name: fd.get("name"), path: fd.get("path") };
+    const r = await shared.act(e.submitter, () => shared.api("POST", "/api/servers/smb/shares", body), "Share added");
+    if (r) { e.target.reset(); await refresh(); }
+  });
+  $("#ftp-share-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const body = { name: fd.get("name"), path: fd.get("path") };
+    const r = await shared.act(e.submitter, () => shared.api("POST", "/api/servers/ftp/shares", body), "Share added");
+    if (r) { e.target.reset(); await refresh(); }
+  });
+  $("#webdav-share-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const body = { name: fd.get("name"), path: fd.get("path") };
+    const r = await shared.act(e.submitter, () => shared.api("POST", "/api/servers/webdav/shares", body), "Share added");
+    if (r) { e.target.reset(); await refresh(); }
+  });
+
+  $("#smb-shares-body").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-smb-rm]");
+    if (!b) return;
+    const name = b.dataset.smbRm;
+    if (!(await shared.typedConfirm("Remove SMB share", `Remove share "${name}"?`, "REMOVE"))) return;
+    const r = await shared.act(b, () => shared.api("DELETE", `/api/servers/smb/shares/${encodeURIComponent(name)}`), "Share removed");
+    if (r) await refresh();
+  });
+  $("#ftp-shares-body").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-ftp-rm]");
+    if (!b) return;
+    const name = b.dataset.ftpRm;
+    if (!(await shared.typedConfirm("Remove FTP share", `Remove share "${name}"?`, "REMOVE"))) return;
+    const r = await shared.act(b, () => shared.api("DELETE", `/api/servers/ftp/shares/${encodeURIComponent(name)}`), "Share removed");
+    if (r) await refresh();
+  });
+  $("#webdav-shares-body").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-webdav-rm]");
+    if (!b) return;
+    const name = b.dataset.webdavRm;
+    if (!(await shared.typedConfirm("Remove WebDAV share", `Remove share "${name}"?`, "REMOVE"))) return;
+    const r = await shared.act(b, () => shared.api("DELETE", `/api/servers/webdav/shares/${encodeURIComponent(name)}`), "Share removed");
+    if (r) await refresh();
+  });
+
+  $("#smb-user-add").addEventListener("click", async (e) => {
+    const name = $("#smb-user-name").value.trim();
+    const pass = $("#smb-user-pass").value;
+    if (!name || !pass) { shared.toast("Username and password required", "error"); return; }
+    const r = await shared.act(e.target, () => shared.api("POST", "/api/servers/smb/users", { username: name, password: pass }), "User added");
+    if (r) { $("#smb-user-name").value = ""; $("#smb-user-pass").value = ""; await refresh(); }
+  });
+  $("#ftp-user-add").addEventListener("click", async (e) => {
+    const name = $("#ftp-user-name").value.trim();
+    const pass = $("#ftp-user-pass").value;
+    if (!name || !pass) { shared.toast("Username and password required", "error"); return; }
+    const r = await shared.act(e.target, () => shared.api("POST", "/api/servers/ftp/users", { username: name, password: pass }), "User added");
+    if (r) { $("#ftp-user-name").value = ""; $("#ftp-user-pass").value = ""; await refresh(); }
+  });
+  $("#webdav-user-add").addEventListener("click", async (e) => {
+    const name = $("#webdav-user-name").value.trim();
+    const pass = $("#webdav-user-pass").value;
+    if (!name || !pass) { shared.toast("Username and password required", "error"); return; }
+    const r = await shared.act(e.target, () => shared.api("POST", "/api/servers/webdav/users", { username: name, password: pass }), "User added");
+    if (r) { $("#webdav-user-name").value = ""; $("#webdav-user-pass").value = ""; await refresh(); }
+  });
+
+  await refresh();
+  window.__tabRefreshers.servers = refresh;
+}
+
+export async function teardown() {
+  window.__tabRefreshers.servers = null;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"}],
