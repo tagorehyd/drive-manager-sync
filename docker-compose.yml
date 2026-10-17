@@ -31,3 +31,4 @@ services:
       - ./data:/data
       - /mnt:/mnt:rshared
       - /srv:/srv:rshared
+      - /var/run/docker.sock:/var/run/docker.sock:ro

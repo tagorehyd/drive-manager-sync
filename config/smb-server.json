@@ -1,0 +1,14 @@
+{
+  "shares": [
+    {
+      "name": "testshare",
+      "options": {
+        "browseable": true,
+        "guest_ok": false,
+        "readonly": false
+      },
+      "path": "/mnt/testshare"
+    }
+  ],
+  "users": []
+}

@@ -46,6 +46,8 @@ DEFAULTS: dict[str, Any] = {
         },
     },
     "fstab": {"entries": [], "read_at": None, "error": None},
+    "nfs-server": {"exports": []},
+    "smb-server": {"shares": [], "users": []},
 }
 
 _locks: dict[str, threading.RLock] = {name: threading.RLock() for name in DEFAULTS}
