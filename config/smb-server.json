@@ -8,12 +8,34 @@
         "readonly": false
       },
       "path": "/mnt/testshare"
+    },
+    {
+      "name": "media",
+      "options": {
+        "browseable": true,
+        "guest_ok": false,
+        "readonly": false
+      },
+      "path": "/mnt/block-storage/jellyfin-media"
+    },
+    {
+      "name": "docker_immich",
+      "options": {
+        "browseable": true,
+        "guest_ok": false,
+        "readonly": false
+      },
+      "path": "/mnt/block-storage/docker_immich"
     }
   ],
   "users": [
     {
       "password": "pass123",
       "username": "testuser"
+    },
+    {
+      "password": "secret123",
+      "username": "sambauser"
     }
   ]
 }

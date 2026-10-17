@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 
 NFS_CONTAINER = "drive-manager-nfs"
 SMB_CONTAINER = "drive-manager-smb"
-NFS_IMAGE = "itsthenetwork/nfs-server-alpine:latest"
+NFS_IMAGE = "nfs-server-arm64:latest"
 SMB_IMAGE = "dockurr/samba:latest"
 
 _PATH_RE = re.compile(r"^/[A-Za-z0-9._/@+-]*$")
@@ -130,7 +130,8 @@ def write_nfs_config_to_container(exports: list[dict[str, Any]]) -> None:
         c.remove(force=True)
 
     dirs = []
-    for exp in exports:
+    volumes: dict[str, dict[str, str]] = {}
+    for i, exp in enumerate(exports):
         path = exp["path"]
         client_opts = []
         for client, opts in exp.get("clients", {}).items():
@@ -138,15 +139,16 @@ def write_nfs_config_to_container(exports: list[dict[str, Any]]) -> None:
                 client_opts.append(f"{client}({opts})")
             else:
                 client_opts.append(client)
-        dirs.append(f"{path}:{path}:{','.join(client_opts) if client_opts else 'rw'}")
+        dirs.append(f"{path}:/exports/{i}:{','.join(client_opts) if client_opts else 'rw'}")
+        volumes[path] = {"bind": f"/exports/{i}", "mode": "rw"}
 
-    env = {"SHARED_DIRECTORIES": ",".join(dirs)} if dirs else {}
+    env = {"SHARED_DIRECTORIES": "|".join(dirs)} if dirs else {}
 
     _docker_client().containers.run(
         NFS_IMAGE,
         name=NFS_CONTAINER,
         environment=env,
-        volumes={"/mnt": {"bind": "/mnt", "mode": "rw"}},
+        volumes=volumes,
         cap_add=["SYS_ADMIN", "NET_ADMIN"],
         network_mode="host",
         restart_policy={"Name": "unless-stopped"},
@@ -230,31 +232,42 @@ def list_smb_shares() -> list[dict[str, Any]]:
 
 
 def write_smb_config_to_container(shares: list[dict[str, Any]], users: list[dict[str, str]]) -> None:
-    """Recreate the SMB container with updated shares and users."""
+    """Recreate the SMB container with numbered /shared/<n> mounts."""
+    c = _get_container(SMB_CONTAINER)
+    if c:
+        c.remove(force=True)
+
+def write_smb_config_to_container(shares: list[dict[str, Any]], users: list[dict[str, str]]) -> None:
+    """Recreate the SMB container with numbered /shared/<n> mounts and single user."""
     c = _get_container(SMB_CONTAINER)
     if c:
         c.remove(force=True)
 
     env: dict[str, str] = {}
+    volumes: dict[str, dict[str, str]] = {}
+
+    # dockurr/samba uses NAME for first share and auto-detects additional shares from /shared/N mounts
     if shares:
-        share = shares[0]
-        env["NAME"] = share["name"]
-        if users:
-            env["USER"] = users[0]["username"]
-            env["PASS"] = users[0]["password"]
-        else:
-            env["USER"] = "samba"
-            env["PASS"] = "samba"
+        env["NAME"] = shares[0]["name"]
     else:
         env["NAME"] = "unused"
-        env["USER"] = "unused"
-        env["PASS"] = "unused"
+
+    # Single user (taken before starting the container)
+    if users:
+        env["USER"] = users[0]["username"]
+        env["PASS"] = users[0]["password"]
+    else:
+        env["USER"] = "samba"
+        env["PASS"] = "samba"
+
+    for i, share in enumerate(shares, start=1):
+        volumes[share["path"]] = {"bind": f"/shared/{i}", "mode": "rw"}
 
     _docker_client().containers.run(
         SMB_IMAGE,
         name=SMB_CONTAINER,
         environment=env,
-        volumes={"/mnt": {"bind": "/shared", "mode": "rw"}},
+        volumes=volumes,
         network_mode="host",
         restart_policy={"Name": "unless-stopped"},
         detach=True,
