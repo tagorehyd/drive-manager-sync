@@ -522,7 +522,7 @@ input[type="radio"]:checked {
 .badge-outline { background: transparent; color: var(--dm-text-dim); border: 1px solid var(--dm-border); }
 
 /* ---------- Tables ---------- */
-.tbl { width: 100%; font-size: 0.85rem; border-collapse: separate; border-spacing: 0; }
+.tbl { width: 100%; font-size: 0.85rem; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
 .tbl th {
   text-align: left;
   font-weight: 700;
@@ -825,10 +825,10 @@ input[type="radio"]:checked {
 
 .dashboard-wrap { max-width: 1200px; margin: 0 auto; }
 .dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 1.25rem;
-  align-items: start;
+  align-items: flex-start;
 }
 .panel {
   background: var(--dm-card);
@@ -839,7 +839,13 @@ input[type="radio"]:checked {
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
+  flex: 1 1 280px;
   height: fit-content;
+  min-height: 180px;
+}
+.panel.panel-log {
+  flex-basis: 420px;
+  min-height: 320px;
 }
 .panel:hover { border-color: var(--dm-border-hover); box-shadow: var(--dm-shadow-lg); }
 .panel-header {
@@ -900,7 +906,7 @@ input[type="radio"]:checked {
 .disk-item:hover .progress-fill { filter: brightness(1.2); }
 
 /* Compact panels - size to content, no stretching */
-.panel-compact { height: fit-content; }
+.panel.panel-compact { height: fit-content; }
 
 /* Progress bars for CPU/memory */
 .progress-track {

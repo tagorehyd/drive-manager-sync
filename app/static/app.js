@@ -712,6 +712,9 @@ $("#fstab-edit-ok").addEventListener("click", async () => {
 });
 
 // Close modal on backdrop click
+$("#confirm").addEventListener("click", (e) => {
+  if (e.target === $("#confirm")) $("#confirm").classList.add("hidden");
+});
 $("#fstab-edit-modal").addEventListener("click", (e) => {
   if (e.target === $("#fstab-edit-modal")) $("#fstab-edit-modal").classList.add("hidden");
 });
@@ -935,6 +938,156 @@ $("#roots-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const roots = e.target.elements.roots.value.split("\n").map((x) => x.trim()).filter(Boolean);
   await act(e.submitter, () => api("PUT", "/api/settings/browse-roots", { roots }), "Saved");
+});
+
+// ------------------------------------------------------------ servers
+loaders.servers = async () => {
+  const [nfs, smb] = await Promise.all([api("GET", "/api/servers/nfs"), api("GET", "/api/servers/smb")]);
+  renderNfs(nfs);
+  renderSmb(smb);
+};
+
+function renderNfs(d) {
+  const status = d.service_active ? "active" : "inactive";
+  const cls = d.service_active ? "badge ok" : "badge bad";
+  $("#nfs-status").className = cls;
+  $("#nfs-status").textContent = d.installed ? (d.service_active ? "Active" : "Stopped") : "Not installed";
+  const body = $("#nfs-exports-body");
+  body.innerHTML = d.exports.map((e) => `<tr>
+    <td class="font-mono text-xs break-all">${esc(e.path)}</td>
+    <td class="text-xs">${Object.keys(e.clients).join(", ") || "*"}</td>
+    <td class="font-mono text-xs break-all">${esc(e.options || "")}</td>
+    <td>${e.exists ? '<span class="badge ok">yes</span>' : '<span class="badge bad">no</span>'}</td>
+    <td>${e.mounted ? '<span class="badge ok">yes</span>' : '<span class="badge muted">no</span>'}</td>
+    <td class="whitespace-nowrap"><button class="btn btn-sm btn-danger" data-nfs-rm="${esc(e.path)}">Remove</button></td>
+  </tr>`).join("");
+}
+
+function renderSmb(d) {
+  const active = d.smbd_active && d.nmbd_active;
+  const cls = active ? "badge ok" : "badge bad";
+  $("#smb-status").className = cls;
+  $("#smb-status").textContent = d.installed ? (active ? "Active" : "Stopped") : "Not installed";
+  const body = $("#smb-shares-body");
+  body.innerHTML = d.shares.map((s) => `<tr>
+    <td><b>${esc(s.name)}</b></td>
+    <td class="font-mono text-xs break-all">${esc(s.path)}</td>
+    <td>${s.options["read only"] === "yes" ? '<span class="badge muted">ro</span>' : '<span class="badge ok">rw</span>'}</td>
+    <td>${s.options["guest ok"] === "yes" ? '<span class="badge ok">yes</span>' : '<span class="badge muted">no</span>'}</td>
+    <td>${s.options["browseable"] === "yes" ? '<span class="badge ok">yes</span>' : '<span class="badge muted">no</span>'}</td>
+    <td>${s.exists ? '<span class="badge ok">yes</span>' : '<span class="badge bad">no</span>'}</td>
+    <td class="whitespace-nowrap"><button class="btn btn-sm btn-danger" data-smb-rm="${esc(s.name)}">Remove</button></td>
+  </tr>`).join("");
+  $("#smb-users-list").textContent = d.users.join(", ") || "(none)";
+}
+
+// Server service actions (install, start, stop, restart)
+function serverAction(apiPath, action, onSuccess) {
+  return async () => {
+    const r = await act(null, () => api("POST", apiPath, { action }), `${action} ${apiPath.split("/").pop()}`);
+    if (r) {
+      if (onSuccess) onSuccess(r);
+      loaders.servers();
+    }
+  };
+}
+
+function installAction(apiPath) {
+  return async () => {
+    const r = await act(null, () => api("POST", apiPath), `Install ${apiPath.split("/").pop()}`);
+    if (r) { loaders.servers(); }
+  };
+}
+
+// NFS buttons
+$("#nfs-install").addEventListener("click", installAction("/api/servers/nfs/install"));
+$("#nfs-start").addEventListener("click", serverAction("/api/servers/nfs/service", "start"));
+$("#nfs-stop").addEventListener("click", serverAction("/api/servers/nfs/service", "stop"));
+$("#nfs-restart").addEventListener("click", serverAction("/api/servers/nfs/service", "restart"));
+$("#nfs-refresh").addEventListener("click", loaders.servers);
+
+$("#nfs-export-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const body = {
+    path: fd.get("path"),
+    client: fd.get("client") || "*",
+    options: {
+      readonly: fd.get("readonly") === "on",
+      sync: fd.get("sync") !== "off",
+      no_root_squash: fd.get("no_root_squash") === "on",
+      no_subtree_check: fd.get("no_subtree_check") !== "off",
+      insecure: fd.get("insecure") === "on",
+    },
+  };
+  const r = await act(e.submitter, () => api("POST", "/api/servers/nfs/exports", body), "Export added");
+  if (r) { e.target.reset(); loaders.servers(); }
+});
+
+$("#nfs-exports-body").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-nfs-rm]");
+  if (!b) return;
+  const path = b.dataset.nfsRm;
+  if (!(await typedConfirm("Remove NFS export", `Remove export ${path}?`, "REMOVE"))) return;
+  const r = await act(b, () => api("DELETE", `/api/servers/nfs/exports?path=${encodeURIComponent(path)}`), "Export removed");
+  if (r) loaders.servers();
+});
+
+// SMB buttons
+$("#smb-install").addEventListener("click", installAction("/api/servers/smb/install"));
+$("#smb-start").addEventListener("click", serverAction("/api/servers/smb/service", "start"));
+$("#smb-stop").addEventListener("click", serverAction("/api/servers/smb/service", "stop"));
+$("#smb-restart").addEventListener("click", serverAction("/api/servers/smb/service", "restart"));
+$("#smb-refresh").addEventListener("click", loaders.servers);
+
+$("#smb-share-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const body = {
+    name: fd.get("name"),
+    path: fd.get("path"),
+    options: {
+      readonly: fd.get("readonly") === "on",
+      guest_ok: fd.get("guest_ok") === "on",
+      browseable: fd.get("browseable") !== "off",
+    },
+  };
+  const forceUser = fd.get("force_user");
+  if (forceUser) body.options.force_user = forceUser;
+  const forceGroup = fd.get("force_group");
+  if (forceGroup) body.options.force_group = forceGroup;
+  const r = await act(e.submitter, () => api("POST", "/api/servers/smb/shares", body), "Share added");
+  if (r) { e.target.reset(); loaders.servers(); }
+});
+
+$("#smb-shares-body").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-smb-rm]");
+  if (!b) return;
+  const name = b.dataset.smbRm;
+  if (!(await typedConfirm("Remove SMB share", `Remove share "${name}"?`, "REMOVE"))) return;
+  const r = await act(b, () => api("DELETE", `/api/servers/smb/shares/${encodeURIComponent(name)}`), "Share removed");
+  if (r) loaders.servers();
+});
+
+// SMB users
+$("#smb-user-add").addEventListener("click", async (e) => {
+  const name = $("#smb-user-name").value.trim();
+  const pass = $("#smb-user-pass").value;
+  if (!name || !pass) { toast("Username and password required", "error"); return; }
+  const r = await act(e.target, () => api("POST", "/api/servers/smb/users", { username: name, password: pass }), "User added");
+  if (r) {
+    $("#smb-user-name").value = "";
+    $("#smb-user-pass").value = "";
+    loaders.servers();
+  }
+});
+
+// SMB force user/group toggle
+$("#smb-force-user-enable").addEventListener("change", (e) => {
+  $("#smb-force-user").disabled = !e.target.checked;
+});
+$("#smb-force-group-enable").addEventListener("change", (e) => {
+  $("#smb-force-group").disabled = !e.target.checked;
 });
 
 // ------------------------------------------------------------ theme

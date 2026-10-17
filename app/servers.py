@@ -110,11 +110,13 @@ def validate_share_name(name: str) -> str:
 
 
 def nfs_server_installed() -> bool:
-    return all(os.path.exists(p) for p in ["/usr/sbin/rpc.nfsd", "/usr/sbin/exportfs"])
+    res = host_sh("command -v rpc.nfsd >/dev/null 2>&1 && command -v exportfs >/dev/null 2>&1 && echo ok", timeout=10)
+    return res["ok"]
 
 
 def smb_server_installed() -> bool:
-    return os.path.exists("/usr/sbin/smbd") and os.path.exists("/usr/sbin/nmbd")
+    res = host_sh("command -v smbd >/dev/null 2>&1 && command -v nmbd >/dev/null 2>&1 && echo ok", timeout=10)
+    return res["ok"]
 
 
 def ensure_nfs_packages() -> None:
@@ -138,25 +140,27 @@ def ensure_smb_packages() -> None:
 def load_nfs_exports() -> list[dict[str, Any]]:
     exports = []
     try:
-        with open(NFS_EXPORTS_FILE, encoding="utf-8") as f:
-            for line_num, line in enumerate(f, 1):
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-                parts = line.split()
-                if len(parts) < 2:
-                    continue
-                path = parts[0]
-                clients = {}
-                for p in parts[1:]:
-                    if "(" in p and p.endswith(")"):
-                        client, opts = p.split("(", 1)
-                        opts = opts[:-1]
-                    else:
-                        client, opts = p, ""
-                    clients[client] = opts
-                exports.append({"path": path, "clients": clients, "line_num": line_num})
-    except FileNotFoundError:
+        res = host(["cat", NFS_EXPORTS_FILE], timeout=10)
+        if not res["ok"]:
+            return exports
+        for line_num, line in enumerate(res["stdout"].splitlines(), 1):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+            path = parts[0]
+            clients = {}
+            for p in parts[1:]:
+                if "(" in p and p.endswith(")"):
+                    client, opts = p.split("(", 1)
+                    opts = opts[:-1]
+                else:
+                    client, opts = p, ""
+                clients[client] = opts
+            exports.append({"path": path, "clients": clients, "line_num": line_num})
+    except Exception:
         pass
     return exports
 
@@ -165,27 +169,29 @@ def load_smb_shares() -> list[dict[str, Any]]:
     shares = []
     current = None
     try:
-        with open(SMB_CONF_FILE, encoding="utf-8") as f:
-            for line in f:
-                line = line.rstrip("\n")
-                if line.strip().startswith("[") and line.strip().endswith("]"):
-                    if current:
-                        shares.append(current)
-                    name = line.strip()[1:-1]
-                    if name == "global":
-                        continue
-                    current = {"name": name, "path": "", "options": {}}
-                elif current and "=" in line:
-                    key, val = line.split("=", 1)
-                    key = key.strip()
-                    val = val.strip()
-                    if key == "path":
-                        current["path"] = val
-                    else:
-                        current["options"][key] = val
-            if current:
-                shares.append(current)
-    except FileNotFoundError:
+        res = host(["cat", SMB_CONF_FILE], timeout=10)
+        if not res["ok"]:
+            return shares
+        for line in res["stdout"].splitlines():
+            line = line.rstrip("\n")
+            if line.strip().startswith("[") and line.strip().endswith("]"):
+                if current:
+                    shares.append(current)
+                name = line.strip()[1:-1]
+                if name == "global":
+                    continue
+                current = {"name": name, "path": "", "options": {}}
+            elif current and "=" in line:
+                key, val = line.split("=", 1)
+                key = key.strip()
+                val = val.strip()
+                if key == "path":
+                    current["path"] = val
+                else:
+                    current["options"][key] = val
+        if current:
+            shares.append(current)
+    except Exception:
         pass
     return shares
 

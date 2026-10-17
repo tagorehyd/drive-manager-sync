@@ -769,3 +769,45 @@ AttributeError: module 'app.mounts' has no attribute 'healthy'
 2026-10-16 10:51:13,293 [INFO] drive_manager: Drive Manager stopped
 2026-10-16 10:51:14,938 [INFO] apscheduler.scheduler: Scheduler started
 2026-10-16 10:51:14,940 [INFO] drive_manager: Drive Manager started
+2026-10-16 12:11:50,050 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 12:11:50,051 [INFO] drive_manager: Drive Manager started
+2026-10-16 18:12:10,072 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 18:12:10,073 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 18:12:11,969 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 18:12:11,971 [INFO] drive_manager: Drive Manager started
+2026-10-16 18:16:24,877 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 18:16:24,878 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 18:16:26,477 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 18:16:26,479 [INFO] drive_manager: Drive Manager started
+2026-10-16 18:38:56,465 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-16 18:38:56,466 [INFO] drive_manager: Drive Manager stopped
+2026-10-16 18:38:58,403 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-16 18:38:58,405 [INFO] drive_manager: Drive Manager started
+2026-10-17 02:59:47,780 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-17 02:59:47,780 [INFO] drive_manager: Drive Manager stopped
+2026-10-17 03:00:07,795 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-17 03:00:07,796 [INFO] drive_manager: Drive Manager started
+2026-10-17 03:10:33,571 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-17 03:10:33,571 [INFO] drive_manager: Drive Manager stopped
+2026-10-17 03:10:35,064 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-17 03:10:35,065 [INFO] drive_manager: Drive Manager started
+2026-10-17 03:11:34,444 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-17 03:11:34,444 [INFO] drive_manager: Drive Manager stopped
+2026-10-17 03:11:35,992 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-17 03:11:35,994 [INFO] drive_manager: Drive Manager started
+2026-10-17 03:16:31,074 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-17 03:16:31,075 [INFO] drive_manager: Drive Manager stopped
+2026-10-17 03:16:32,537 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-17 03:16:32,538 [INFO] drive_manager: Drive Manager started
+2026-10-17 03:21:32,883 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-17 03:21:32,884 [INFO] drive_manager: Drive Manager stopped
+2026-10-17 03:21:34,387 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-17 03:21:34,388 [INFO] drive_manager: Drive Manager started
+2026-10-17 04:09:19,243 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-17 04:09:19,244 [INFO] drive_manager: Drive Manager stopped
+2026-10-17 04:09:20,916 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-17 04:09:20,917 [INFO] drive_manager: Drive Manager started
+2026-10-17 04:12:10,420 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-17 04:12:10,421 [INFO] drive_manager: Drive Manager stopped
+2026-10-17 04:12:12,027 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-17 04:12:12,028 [INFO] drive_manager: Drive Manager started
