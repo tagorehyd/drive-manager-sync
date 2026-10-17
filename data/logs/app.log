@@ -8479,3 +8479,24 @@ docker.errors.NotFound: 404 Client Error for http+docker://localhost/v1.56/exec/
 2026-10-17 08:12:52,364 [INFO] drive_manager: Drive Manager stopped
 2026-10-17 08:12:53,956 [INFO] apscheduler.scheduler: Scheduler started
 2026-10-17 08:12:53,958 [INFO] drive_manager: Drive Manager started
+2026-10-17 08:43:43,930 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-17 08:43:43,930 [INFO] drive_manager: Drive Manager stopped
+2026-10-17 08:43:45,514 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-17 08:43:45,515 [INFO] drive_manager: Drive Manager started
+2026-10-17 08:45:17,143 [WARNING] app.routes.auth: failed login for 'admin' from 172.23.0.1
+2026-10-17 08:45:23,902 [WARNING] app.routes.auth: failed login for 'admin' from 172.23.0.1
+2026-10-17 13:54:40,249 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-17 13:54:40,249 [INFO] drive_manager: Drive Manager stopped
+2026-10-17 13:54:41,902 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-17 13:54:41,903 [INFO] drive_manager: Drive Manager started
+2026-10-17 14:04:32,086 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-17 14:04:32,087 [INFO] drive_manager: Drive Manager stopped
+2026-10-17 14:04:33,662 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-17 14:04:33,663 [INFO] drive_manager: Drive Manager started
+2026-10-17 14:09:22,882 [INFO] apscheduler.scheduler: Scheduler has been shut down
+2026-10-17 14:09:22,882 [INFO] drive_manager: Drive Manager stopped
+2026-10-17 14:09:24,427 [INFO] apscheduler.scheduler: Scheduler started
+2026-10-17 14:09:24,428 [INFO] drive_manager: Drive Manager started
+2026-10-17 14:10:50,035 [WARNING] app.routes.auth: failed login for 'admin' from 172.23.0.1
+2026-10-17 14:11:00,931 [WARNING] app.routes.auth: failed login for 'admin' from 172.23.0.1
+2026-10-17 14:12:59,088 [WARNING] app.routes.auth: failed login for 'admin' from 172.23.0.1
