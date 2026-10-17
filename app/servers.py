@@ -619,31 +619,46 @@ def ftp_server_status() -> dict[str, Any]:
     c = _get_container(FTP_CONTAINER)
     installed = c is not None
     if not c:
-        return {"stdout": "inactive", "installed": False}
+        return {"stdout": "inactive", "installed": False, "shares": [], "users": []}
     try:
         c.reload()
     except Exception:
-        return {"stdout": "inactive", "installed": True}
+        return {"stdout": "inactive", "installed": True, "shares": [], "users": []}
     running = c.status == "running"
-    return {"stdout": "active" if running else "inactive", "installed": True}
+    return {
+        "stdout": "active" if running else "inactive",
+        "installed": True,
+        "shares": list_ftp_shares(),
+        "users": list_ftp_users(),
+    }
 
 
 def webdav_server_status() -> dict[str, Any]:
     containers = _docker_client().containers.list(all=True, filters={"name": WEBDAV_CONTAINER_PREFIX})
     if not containers:
-        return {"stdout": "inactive", "installed": False}
+        return {"stdout": "inactive", "installed": False, "shares": [], "users": []}
     running = all(c.status == "running" for c in containers)
-    return {"stdout": "active" if running else "inactive", "installed": True}
+    return {
+        "stdout": "active" if running else "inactive",
+        "installed": True,
+        "shares": list_webdav_shares(),
+        "users": list_webdav_users(),
+    }
 
 
 def smb_server_status() -> dict[str, Any]:
     c = _get_container(SMB_CONTAINER)
     installed = c is not None
     if not c:
-        return {"stdout": "inactive", "installed": False}
+        return {"stdout": "inactive", "installed": False, "shares": [], "users": []}
     try:
         c.reload()
     except Exception:
-        return {"stdout": "inactive", "installed": True}
+        return {"stdout": "inactive", "installed": True, "shares": [], "users": []}
     running = c.status == "running"
-    return {"stdout": "active" if running else "inactive", "installed": True}
+    return {
+        "stdout": "active" if running else "inactive",
+        "installed": True,
+        "shares": list_smb_shares(),
+        "users": list_smb_users(),
+    }
