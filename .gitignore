@@ -4,5 +4,15 @@ __pycache__/
 config/auth.json
 config/notifications.json
 config/rclone.conf
+config/smb-server.json
+config/fstab.json
+config/peers.json
+config/nfs-server.json
+config/ftp-server.json
+config/webdav-server.json
+config/sync-jobs.json
+config/media-jobs.json
+config/app.json
+config/secret.key
 data/
 *.log

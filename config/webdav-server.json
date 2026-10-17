@@ -1,9 +1,0 @@
-{
-  "shares": [
-    {
-      "name": "media",
-      "path": "/mnt/block-storage/jellyfin-media"
-    }
-  ],
-  "users": []
-}
