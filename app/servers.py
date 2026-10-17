@@ -338,11 +338,39 @@ def remove_smb_share(name: str) -> None:
 
 def set_smb_password(username: str, password: str) -> dict[str, Any]:
     ensure_smb_packages()
-    res = host_sh(
-        f"smbpasswd -a -s {username}",
-        timeout=30,
-        input_text=f"{password}\n{password}\n"
-    )
+    # smbpasswd -a needs a TTY for password prompts; run Python pty script on host via nsenter
+    py = (
+        "import pty,os,time\n"
+        "m,s=pty.openpty()\n"
+        "p=os.fork()\n"
+        "if p==0:\n"
+        "    os.setsid(); os.close(m)\n"
+        "    os.dup2(s,0); os.dup2(s,1); os.dup2(s,2); os.close(s)\n"
+        "    os.execvp('smbpasswd',['smbpasswd','-a','%s'])\n"
+        "else:\n"
+        "    os.close(s)\n"
+        "    time.sleep(0.3)\n"
+        "    os.write(m,('%s\\n'%password).encode())\n"
+        "    time.sleep(0.3)\n"
+        "    os.write(m,('%s\\n'%password).encode())\n"
+        "    time.sleep(1.0)\n"
+        "    out=b''\n"
+        "    while True:\n"
+        "        try:\n"
+        "            c=os.read(m,4096)\n"
+        "            if not c: break\n"
+        "            out+=c\n"
+        "        except OSError: break\n"
+        "    os.close(m)\n"
+        "    _,st=os.waitpid(p,0)\n"
+        "    print('RC:%d'%os.WEXITSTATUS(st))\n"
+        "    print('OUT:%s'%out.decode(errors='replace'))\n"
+    ) % (username, username, password, password)
+    # Write script to temp file on host to avoid shell escaping issues
+    write_res = host_sh("cat > /tmp/dm_smbpasswd.py", timeout=10, input_text=py)
+    if not write_res["ok"]:
+        return write_res
+    res = host_sh("python3 /tmp/dm_smbpasswd.py && rm -f /tmp/dm_smbpasswd.py", timeout=30)
     return res
 
 
