@@ -662,128 +662,149 @@ def log_tail(name: str, lines: int = Query(300, ge=1, le=5000), level: str = "")
         raise _bad(exc)
 
 
-# ---------------------------------------------------------------- NFS server
+# ---------------------------------------------------------------- FTP server
 
-class NfsExportIn(BaseModel):
-    path: str
-    client: str = "*"
-    options: dict[str, Any] = Field(default_factory=dict)
-
-
-class NfsServiceIn(BaseModel):
-    action: str
-
-
-@router.get("/servers/nfs")
-def nfs_status():
-    return servers.nfs_server_status()
-
-
-@router.post("/servers/nfs/exports")
-def add_nfs_export(body: NfsExportIn):
-    try:
-        return {"ok": True, "export": servers.add_nfs_export(body.model_dump())}
-    except (ValueError, KeyError) as exc:
-        raise _bad(exc)
-
-
-@router.delete("/servers/nfs/exports")
-def remove_nfs_export(path: str, client: str | None = None):
-    try:
-        servers.remove_nfs_export(path, client)
-    except (ValueError, KeyError) as exc:
-        raise _bad(exc)
-    return {"ok": True}
-
-
-@router.post("/servers/nfs/service")
-def nfs_service(body: NfsServiceIn):
-    try:
-        res = servers.nfs_service_action(body.action)
-    except ValueError as exc:
-        raise _bad(exc)
-    return {"ok": res["ok"], "stderr": res.get("stderr", "")}
-
-
-@router.post("/servers/nfs/install")
-def nfs_install():
-    try:
-        servers.ensure_nfs_packages()
-    except Exception as exc:
-        raise _bad(exc)
-    return {"ok": True}
-
-
-# ---------------------------------------------------------------- SMB server
-
-class SmbShareIn(BaseModel):
+class FtpShareIn(BaseModel):
     name: str
     path: str
-    options: dict[str, Any] = Field(default_factory=dict)
 
 
-class SmbServiceIn(BaseModel):
+class FtpServiceIn(BaseModel):
     action: str
 
 
-class SmbUserIn(BaseModel):
+class FtpUserIn(BaseModel):
     username: str
     password: str
 
 
-@router.get("/servers/smb")
-def smb_status():
-    return servers.smb_server_status()
+@router.get("/servers/ftp")
+def ftp_status():
+    return servers.ftp_server_status()
 
 
-@router.post("/servers/smb/shares")
-def add_smb_share(body: SmbShareIn):
+@router.post("/servers/ftp/shares")
+def add_ftp_share(body: FtpShareIn):
     try:
-        return {"ok": True, "share": servers.add_smb_share(body.model_dump())}
+        return {"ok": True, "share": servers.add_ftp_share(body.model_dump())}
     except (ValueError, KeyError) as exc:
         raise _bad(exc)
 
 
-@router.delete("/servers/smb/shares/{name}")
-def remove_smb_share(name: str):
+@router.delete("/servers/ftp/shares/{name}")
+def remove_ftp_share(name: str):
     try:
-        servers.remove_smb_share(name)
+        servers.remove_ftp_share(name)
     except (ValueError, KeyError) as exc:
         raise _bad(exc)
     return {"ok": True}
 
 
-@router.post("/servers/smb/service")
-def smb_service(body: SmbServiceIn):
+@router.post("/servers/ftp/service")
+def ftp_service(body: FtpServiceIn):
     try:
-        res = servers.smb_service_action(body.action)
+        res = servers.ftp_service_action(body.action)
     except ValueError as exc:
         raise _bad(exc)
     return {"ok": res["ok"], "stderr": res.get("stderr", "")}
 
 
-@router.post("/servers/smb/install")
-def smb_install():
+@router.post("/servers/ftp/install")
+def ftp_install():
     try:
-        servers.ensure_smb_packages()
+        servers.ensure_ftp_packages()
     except Exception as exc:
         raise _bad(exc)
     return {"ok": True}
 
 
-@router.post("/servers/smb/users")
-def add_smb_user(body: SmbUserIn):
+@router.post("/servers/ftp/users")
+def add_ftp_user(body: FtpUserIn):
     try:
-        res = servers.set_smb_password(body.username, body.password)
+        res = servers.set_ftp_password(body.username, body.password)
     except (ValueError, KeyError) as exc:
         raise _bad(exc)
     return {"ok": res["ok"], "stderr": res.get("stderr", "")}
 
 
-@router.delete("/servers/smb/users/{username}")
-def delete_smb_user(username: str):
+@router.delete("/servers/ftp/users/{username}")
+def delete_ftp_user(username: str):
     try:
-        res = servers.delete_smb_user(username)
+        res = servers.delete_ftp_user(username)
+    except (ValueError, KeyError) as exc:
+        raise _bad(exc)
+    return {"ok": res["ok"], "stderr": res.get("stderr", "")}
+
+
+# ---------------------------------------------------------------- WebDAV server
+
+class WebdavShareIn(BaseModel):
+    name: str
+    path: str
+
+
+class WebdavServiceIn(BaseModel):
+    action: str
+
+
+class WebdavUserIn(BaseModel):
+    username: str
+    password: str
+
+
+@router.get("/servers/webdav")
+def webdav_status():
+    return servers.webdav_server_status()
+
+
+@router.post("/servers/webdav/shares")
+def add_webdav_share(body: WebdavShareIn):
+    try:
+        return {"ok": True, "share": servers.add_webdav_share(body.model_dump())}
+    except (ValueError, KeyError) as exc:
+        raise _bad(exc)
+
+
+@router.delete("/servers/webdav/shares/{name}")
+def remove_webdav_share(name: str):
+    try:
+        servers.remove_webdav_share(name)
+    except (ValueError, KeyError) as exc:
+        raise _bad(exc)
+    return {"ok": True}
+
+
+@router.post("/servers/webdav/service")
+def webdav_service(body: WebdavServiceIn):
+    try:
+        res = servers.webdav_service_action(body.action)
+    except ValueError as exc:
+        raise _bad(exc)
+    return {"ok": res["ok"], "stderr": res.get("stderr", "")}
+
+
+@router.post("/servers/webdav/install")
+def webdav_install():
+    try:
+        servers.ensure_webdav_packages()
+    except Exception as exc:
+        raise _bad(exc)
+    return {"ok": True}
+
+
+@router.post("/servers/webdav/users")
+def add_webdav_user(body: WebdavUserIn):
+    try:
+        res = servers.set_webdav_password(body.username, body.password)
+    except (ValueError, KeyError) as exc:
+        raise _bad(exc)
+    return {"ok": res["ok"], "stderr": res.get("stderr", "")}
+
+
+@router.delete("/servers/webdav/users/{username}")
+def delete_webdav_user(username: str):
+    try:
+        res = servers.delete_webdav_user(username)
     except (ValueError, KeyError) as exc:
         raise _bad(exc)
     return {"ok": res["ok"], "stderr": res.get("stderr", "")}

@@ -1,10 +1,9 @@
-"""NFS and SMB server management via Docker containers."""
+"""FTP and WebDAV server management via Docker containers."""
 from __future__ import annotations
 
 import logging
 import os
 import re
-import time
 from typing import Any
 
 import docker
@@ -13,18 +12,17 @@ from app import config
 
 log = logging.getLogger(__name__)
 
-NFS_CONTAINER = "drive-manager-nfs"
-SMB_CONTAINER = "drive-manager-smb"
-NFS_IMAGE = "nfs-server-arm64:latest"
-SMB_IMAGE = "dockurr/samba:latest"
+FTP_CONTAINER = "drive-manager-ftp"
+WEBDAV_CONTAINER = "drive-manager-webdav"
+FTP_IMAGE = "stilliard/pure-ftpd:latest"   # ARM64-compatible FTP server
+WEBDAV_IMAGE = "sentanu/caddy-webdav:latest"  # ARM64-compatible WebDAV
 
 _PATH_RE = re.compile(r"^/[A-Za-z0-9._/@+-]*$")
-_HOST_RE = re.compile(r"^[A-Za-z0-9.\-:\[\]]{1,253}$")
 _SHARE_NAME_RE = re.compile(r"^[A-Za-z0-9._-]{1,80}$")
 
 # Config keys for persisting server state
-NFS_CONFIG_KEY = "nfs-server"
-SMB_CONFIG_KEY = "smb-server"
+FTP_CONFIG_KEY = "ftp-server"
+WEBDAV_CONFIG_KEY = "webdav-server"
 
 
 class ServerError(ValueError):
@@ -53,15 +51,6 @@ def validate_export_path(path: str) -> str:
     return path
 
 
-def validate_host(host_str: str) -> str:
-    host_str = host_str.strip()
-    if host_str == "*" or host_str == "0.0.0.0/0":
-        return "*"
-    if _HOST_RE.match(host_str) or "/" in host_str:
-        return host_str
-    raise ServerError("Invalid host/network specification")
-
-
 def validate_share_name(name: str) -> str:
     name = name.strip()
     if not _SHARE_NAME_RE.match(name):
@@ -71,7 +60,7 @@ def validate_share_name(name: str) -> str:
 
 # ---------------------------------------------------------------- Docker image availability
 
-def nfs_server_installed() -> bool:
+def ftp_server_installed() -> bool:
     try:
         _docker_client().ping()
         return True
@@ -79,7 +68,7 @@ def nfs_server_installed() -> bool:
         return False
 
 
-def smb_server_installed() -> bool:
+def webdav_server_installed() -> bool:
     try:
         _docker_client().ping()
         return True
@@ -87,185 +76,69 @@ def smb_server_installed() -> bool:
         return False
 
 
-def ensure_nfs_packages() -> None:
+def ensure_ftp_packages() -> None:
     try:
-        _docker_client().images.get(NFS_IMAGE)
+        _docker_client().images.get(FTP_IMAGE)
     except docker.errors.ImageNotFound:
-        log.info("Pulling NFS image %s", NFS_IMAGE)
-        _docker_client().images.pull(NFS_IMAGE)
+        log.info("Pulling FTP image %s", FTP_IMAGE)
+        _docker_client().images.pull(FTP_IMAGE)
 
 
-def ensure_smb_packages() -> None:
+def ensure_webdav_packages() -> None:
     try:
-        _docker_client().images.get(SMB_IMAGE)
+        _docker_client().images.get(WEBDAV_IMAGE)
     except docker.errors.ImageNotFound:
-        log.info("Pulling SMB image %s", SMB_IMAGE)
-        _docker_client().images.pull(SMB_IMAGE)
+        log.info("Pulling WebDAV image %s", WEBDAV_IMAGE)
+        _docker_client().images.pull(WEBDAV_IMAGE)
 
 
-# ---------------------------------------------------------------- NFS config persistence
+# ---------------------------------------------------------------- FTP config persistence
 
-def _nfs_config() -> dict[str, Any]:
-    return config.load(NFS_CONFIG_KEY) or {"exports": []}
-
-
-def _save_nfs_config(data: dict[str, Any]) -> None:
-    config.update(NFS_CONFIG_KEY, lambda d: d.update(data))
+def _ftp_config() -> dict[str, Any]:
+    return config.load(FTP_CONFIG_KEY) or {"shares": [], "users": []}
 
 
-# ---------------------------------------------------------------- NFS operations
-
-def list_nfs_exports() -> list[dict[str, Any]]:
-    exports = _nfs_config().get("exports", [])
-    for exp in exports:
-        exp["mounted"] = os.path.ismount(exp["path"])
-        exp["exists"] = os.path.exists(exp["path"])
-    return exports
+def _save_ftp_config(data: dict[str, Any]) -> None:
+    config.update(FTP_CONFIG_KEY, lambda d: d.update(data))
 
 
-def write_nfs_config_to_container(exports: list[dict[str, Any]]) -> None:
-    """Recreate the NFS container with updated SHARED_DIRECTORIES."""
-    c = _get_container(NFS_CONTAINER)
-    if c:
-        c.remove(force=True)
+# ---------------------------------------------------------------- FTP operations
 
-    dirs = []
-    volumes: dict[str, dict[str, str]] = {}
-    for i, exp in enumerate(exports):
-        path = exp["path"]
-        client_opts = []
-        for client, opts in exp.get("clients", {}).items():
-            if opts:
-                client_opts.append(f"{client}({opts})")
-            else:
-                client_opts.append(client)
-        dirs.append(f"{path}:/exports/{i}:{','.join(client_opts) if client_opts else 'rw'}")
-        volumes[path] = {"bind": f"/exports/{i}", "mode": "rw"}
-
-    env = {"SHARED_DIRECTORIES": "|".join(dirs)} if dirs else {}
-
-    _docker_client().containers.run(
-        NFS_IMAGE,
-        name=NFS_CONTAINER,
-        environment=env,
-        volumes=volumes,
-        cap_add=["SYS_ADMIN", "NET_ADMIN"],
-        network_mode="host",
-        restart_policy={"Name": "unless-stopped"},
-        detach=True,
-    )
-
-
-def add_nfs_export(data: dict[str, Any]) -> dict[str, Any]:
-    path = validate_export_path(data["path"])
-    client = validate_host(data.get("client", "*"))
-    opts = data.get("options", {})
-    opts_str = _nfs_opts_to_str(opts)
-
-    exports = _nfs_config().get("exports", [])
-    for exp in exports:
-        if exp["path"] == path:
-            exp["clients"][client] = opts_str
-            break
-    else:
-        exports.append({"path": path, "clients": {client: opts_str}})
-
-    _save_nfs_config({"exports": exports})
-    write_nfs_config_to_container(exports)
-    return {"path": path, "client": client, "options": opts_str}
-
-
-def remove_nfs_export(path: str, client: str | None = None) -> None:
-    exports = _nfs_config().get("exports", [])
-    if client:
-        exports = [e for e in exports if not (e["path"] == path and client in e["clients"])]
-    else:
-        exports = [e for e in exports if e["path"] != path]
-    _save_nfs_config({"exports": exports})
-    write_nfs_config_to_container(exports)
-
-
-def nfs_service_action(action: str) -> dict[str, Any]:
-    c = _get_container(NFS_CONTAINER)
-    if not c:
-        ensure_nfs_packages()
-        write_nfs_config_to_container(_nfs_config().get("exports", []))
-        c = _get_container(NFS_CONTAINER)
-        if action == "stop":
-            c.stop()
-        return {"ok": True}
-
-    if action == "start":
-        c.start()
-    elif action == "stop":
-        c.stop()
-    elif action == "restart":
-        c.restart()
-    return {"ok": True}
-
-
-def nfs_service_status() -> dict[str, Any]:
-    c = _get_container(NFS_CONTAINER)
-    if not c:
-        return {"stdout": "inactive"}
-    c.reload()
-    return {"stdout": "active" if c.status == "running" else "inactive"}
-
-
-# ---------------------------------------------------------------- SMB config persistence
-
-def _smb_config() -> dict[str, Any]:
-    return config.load(SMB_CONFIG_KEY) or {"shares": [], "users": []}
-
-
-def _save_smb_config(data: dict[str, Any]) -> None:
-    config.update(SMB_CONFIG_KEY, lambda d: d.update(data))
-
-
-# ---------------------------------------------------------------- SMB operations
-
-def list_smb_shares() -> list[dict[str, Any]]:
-    shares = _smb_config().get("shares", [])
+def list_ftp_shares() -> list[dict[str, Any]]:
+    shares = _ftp_config().get("shares", [])
     for share in shares:
         share["exists"] = os.path.exists(share["path"])
     return shares
 
 
-def write_smb_config_to_container(shares: list[dict[str, Any]], users: list[dict[str, str]]) -> None:
-    """Recreate the SMB container with numbered /shared/<n> mounts."""
-    c = _get_container(SMB_CONTAINER)
-    if c:
-        c.remove(force=True)
-
-def write_smb_config_to_container(shares: list[dict[str, Any]], users: list[dict[str, str]]) -> None:
-    """Recreate the SMB container with numbered /shared/<n> mounts and single user."""
-    c = _get_container(SMB_CONTAINER)
+def write_ftp_config_to_container(shares: list[dict[str, Any]], users: list[dict[str, str]]) -> None:
+    """Recreate the FTP container with updated shares and users."""
+    c = _get_container(FTP_CONTAINER)
     if c:
         c.remove(force=True)
 
     env: dict[str, str] = {}
-    volumes: dict[str, dict[str, str]] = {}
+    volumes: dict[str, dict[str, str]] = {"/mnt": {"bind": "/mnt", "mode": "rw"}}
 
-    # dockurr/samba uses NAME for first share and auto-detects additional shares from /shared/N mounts
-    if shares:
-        env["NAME"] = shares[0]["name"]
-    else:
-        env["NAME"] = "unused"
-
-    # Single user (taken before starting the container)
-    if users:
-        env["USER"] = users[0]["username"]
-        env["PASS"] = users[0]["password"]
-    else:
-        env["USER"] = "samba"
-        env["PASS"] = "samba"
+    for i, user in enumerate(users, start=1):
+        env[f"FTP_USER_{i}"] = user["username"]
+        env[f"FTP_PASS_{i}"] = user["password"]
 
     for i, share in enumerate(shares, start=1):
-        volumes[share["path"]] = {"bind": f"/shared/{i}", "mode": "rw"}
+        name = share["name"]
+        path = share["path"]
+        env[f"FTP_SHARE_{i}"] = name
+        volumes[path] = {"bind": f"/home/ftpusers/{name}", "mode": "rw"}
+
+    if not shares:
+        cmd: list[str] | None = ["tail", "-f", "/dev/null"]
+    else:
+        cmd = None
 
     _docker_client().containers.run(
-        SMB_IMAGE,
-        name=SMB_CONTAINER,
+        FTP_IMAGE,
+        name=FTP_CONTAINER,
+        command=cmd,
         environment=env,
         volumes=volumes,
         network_mode="host",
@@ -274,39 +147,37 @@ def write_smb_config_to_container(shares: list[dict[str, Any]], users: list[dict
     )
 
 
-def add_smb_share(data: dict[str, Any]) -> dict[str, Any]:
+def add_ftp_share(data: dict[str, Any]) -> dict[str, Any]:
     name = validate_share_name(data["name"])
     path = validate_export_path(data["path"])
-    opts = data.get("options", {})
 
-    cfg = _smb_config()
+    cfg = _ftp_config()
     shares = cfg.get("shares", [])
     for share in shares:
         if share["name"] == name:
             share["path"] = path
-            share["options"] = opts
             break
     else:
-        shares.append({"name": name, "path": path, "options": opts})
+        shares.append({"name": name, "path": path})
 
-    _save_smb_config({"shares": shares, "users": cfg.get("users", [])})
-    write_smb_config_to_container(shares, cfg.get("users", []))
-    return {"name": name, "path": path, "options": opts}
+    _save_ftp_config({"shares": shares, "users": cfg.get("users", [])})
+    write_ftp_config_to_container(shares, cfg.get("users", []))
+    return {"name": name, "path": path}
 
 
-def remove_smb_share(name: str) -> None:
-    cfg = _smb_config()
+def remove_ftp_share(name: str) -> None:
+    cfg = _ftp_config()
     shares = [s for s in cfg.get("shares", []) if s["name"] != name]
-    _save_smb_config({"shares": shares, "users": cfg.get("users", [])})
-    write_smb_config_to_container(shares, cfg.get("users", []))
+    _save_ftp_config({"shares": shares, "users": cfg.get("users", [])})
+    write_ftp_config_to_container(shares, cfg.get("users", []))
 
 
-def smb_service_action(action: str) -> dict[str, Any]:
-    c = _get_container(SMB_CONTAINER)
+def ftp_service_action(action: str) -> dict[str, Any]:
+    c = _get_container(FTP_CONTAINER)
     if not c:
-        ensure_smb_packages()
-        write_smb_config_to_container(_smb_config().get("shares", []), _smb_config().get("users", []))
-        c = _get_container(SMB_CONTAINER)
+        ensure_ftp_packages()
+        write_ftp_config_to_container(_ftp_config().get("shares", []), _ftp_config().get("users", []))
+        c = _get_container(FTP_CONTAINER)
         if action == "stop":
             c.stop()
         return {"ok": True}
@@ -320,33 +191,28 @@ def smb_service_action(action: str) -> dict[str, Any]:
     return {"ok": True}
 
 
-def smb_service_status() -> dict[str, Any]:
-    c = _get_container(SMB_CONTAINER)
+def ftp_service_status() -> dict[str, Any]:
+    c = _get_container(FTP_CONTAINER)
     if not c:
-        return {"smbd": {"stdout": "inactive"}, "nmbd": {"stdout": "inactive"}}
+        return {"stdout": "inactive"}
     try:
         c.reload()
     except Exception:
-        return {"smbd": {"stdout": "inactive"}, "nmbd": {"stdout": "inactive"}}
+        return {"stdout": "inactive"}
     running = c.status == "running"
-    has_shares = len(_smb_config().get("shares", [])) > 0
-    active = running and has_shares
-    return {
-        "smbd": {"stdout": "active" if active else "inactive"},
-        "nmbd": {"stdout": "active" if active else "inactive"},
-    }
+    return {"stdout": "active" if running else "inactive"}
 
 
-# ---------------------------------------------------------------- SMB users
+# ---------------------------------------------------------------- FTP users
 
-def set_smb_password(username: str, password: str) -> dict[str, Any]:
-    ensure_smb_packages()
-    c = _get_container(SMB_CONTAINER)
+def set_ftp_password(username: str, password: str) -> dict[str, Any]:
+    ensure_ftp_packages()
+    c = _get_container(FTP_CONTAINER)
     if not c:
-        write_smb_config_to_container(_smb_config().get("shares", []), [])
-        c = _get_container(SMB_CONTAINER)
+        write_ftp_config_to_container(_ftp_config().get("shares", []), [])
+        c = _get_container(FTP_CONTAINER)
         if not c:
-            return {"ok": False, "stderr": "SMB container could not be created"}
+            return {"ok": False, "stderr": "FTP container could not be created"}
 
     # Wait for container to be running
     for _ in range(20):
@@ -356,150 +222,208 @@ def set_smb_password(username: str, password: str) -> dict[str, Any]:
             pass
         if c.status == "running":
             break
+        import time
         time.sleep(0.5)
 
     if c.status != "running":
-        return {"ok": False, "stderr": "SMB container not running"}
+        return {"ok": False, "stderr": "FTP container not running"}
 
-    # smbpasswd -a needs a TTY for password prompts; run Python pty script inside container
-    # Use base64 to avoid shell/escaping issues
-    py = (
-        "import pty,os,time\n"
-        "m,s=pty.openpty()\n"
-        "p=os.fork()\n"
-        "if p==0:\n"
-        "    os.setsid(); os.close(m)\n"
-        "    os.dup2(s,0); os.dup2(s,1); os.dup2(s,2); os.close(s)\n"
-        "    os.execvp('smbpasswd',['smbpasswd','-a',USR])\n"
-        "else:\n"
-        "    os.close(s)\n"
-        "    time.sleep(0.3)\n"
-        "    os.write(m,('%s\\n'%PWD).encode())\n"
-        "    time.sleep(0.3)\n"
-        "    os.write(m,('%s\\n'%PWD).encode())\n"
-        "    time.sleep(1.0)\n"
-        "    out=b''\n"
-        "    while True:\n"
-        "        try:\n"
-        "            c=os.read(m,4096)\n"
-        "            if not c: break\n"
-        "            out+=c\n"
-        "        except OSError: break\n"
-        "    os.close(m)\n"
-        "    _,st=os.waitpid(p,0)\n"
-        "    print('RC:%d'%os.WEXITSTATUS(st))\n"
-        "    print('OUT:%s'%out.decode(errors='replace'))\n"
+    # Add user via pure-pw inside container
+    res = c.exec_run(f"pure-pw useradd {username} -f /etc/pure-ftpd/passwd.pdb -m -u ftpuser -d /home/ftpusers/{username}")
+    return {"ok": res.exit_code == 0, "stderr": res.output.decode(errors="replace") if res.output else ""}
+
+
+def delete_ftp_user(username: str) -> dict[str, Any]:
+    c = _get_container(FTP_CONTAINER)
+    if not c:
+        return {"ok": False, "stderr": "FTP container not running"}
+    res = c.exec_run(f"pure-pw userdel {username} -f /etc/pure-ftpd/passwd.pdb -m")
+    return {"ok": res.exit_code == 0, "stderr": res.output.decode(errors="replace") if res.output else ""}
+
+
+def list_ftp_users() -> list[str]:
+    cfg = _ftp_config()
+    return [u.get("username", "") for u in cfg.get("users", []) if u.get("username")]
+
+
+# ---------------------------------------------------------------- WebDAV config persistence
+
+def _webdav_config() -> dict[str, Any]:
+    return config.load(WEBDAV_CONFIG_KEY) or {"shares": [], "users": []}
+
+
+def _save_webdav_config(data: dict[str, Any]) -> None:
+    config.update(WEBDAV_CONFIG_KEY, lambda d: d.update(data))
+
+
+# ---------------------------------------------------------------- WebDAV operations
+
+def list_webdav_shares() -> list[dict[str, Any]]:
+    shares = _webdav_config().get("shares", [])
+    for share in shares:
+        share["exists"] = os.path.exists(share["path"])
+    return shares
+
+
+def write_webdav_config_to_container(shares: list[dict[str, Any]], users: list[dict[str, str]]) -> None:
+    """Recreate the WebDAV container with sentanu/caddy-webdav."""
+    c = _get_container(WEBDAV_CONTAINER)
+    if c:
+        c.remove(force=True)
+
+    env: dict[str, str] = {}
+    volumes: dict[str, dict[str, str]] = {}
+
+    # Single user (taken before starting the container)
+    if users:
+        env["WEBDAV_USERNAME"] = users[0]["username"]
+        env["WEBDAV_PASSWORD"] = users[0]["password"]
+    else:
+        env["WEBDAV_USERNAME"] = "webdav"
+        env["WEBDAV_PASSWORD"] = "webdav"
+
+    # Mount shares at /srv/1, /srv/2, etc.
+    for i, share in enumerate(shares, start=1):
+        volumes[share["path"]] = {"bind": f"/srv/{i}", "mode": "rw"}
+
+    _docker_client().containers.run(
+        WEBDAV_IMAGE,
+        name=WEBDAV_CONTAINER,
+        environment=env,
+        volumes=volumes,
+        network_mode="host",
+        restart_policy={"Name": "unless-stopped"},
+        detach=True,
     )
-    py = py.replace("USR", repr(username)).replace("PWD", repr(password))
-    import base64
-    encoded = base64.b64encode(py.encode()).decode()
-    res = c.exec_run(f"echo {encoded} | base64 -d | python3")
+
+
+def add_webdav_share(data: dict[str, Any]) -> dict[str, Any]:
+    name = validate_share_name(data["name"])
+    path = validate_export_path(data["path"])
+
+    cfg = _webdav_config()
+    shares = cfg.get("shares", [])
+    for share in shares:
+        if share["name"] == name:
+            share["path"] = path
+            break
+    else:
+        shares.append({"name": name, "path": path})
+
+    _save_webdav_config({"shares": shares, "users": cfg.get("users", [])})
+    write_webdav_config_to_container(shares, cfg.get("users", []))
+    return {"name": name, "path": path}
+
+
+def remove_webdav_share(name: str) -> None:
+    cfg = _webdav_config()
+    shares = [s for s in cfg.get("shares", []) if s["name"] != name]
+    _save_webdav_config({"shares": shares, "users": cfg.get("users", [])})
+    write_webdav_config_to_container(shares, cfg.get("users", []))
+
+
+def webdav_service_action(action: str) -> dict[str, Any]:
+    c = _get_container(WEBDAV_CONTAINER)
+    if not c:
+        ensure_webdav_packages()
+        write_webdav_config_to_container(_webdav_config().get("shares", []), _webdav_config().get("users", []))
+        c = _get_container(WEBDAV_CONTAINER)
+        if action == "stop":
+            c.stop()
+        return {"ok": True}
+
+    if action == "start":
+        c.start()
+    elif action == "stop":
+        c.stop()
+    elif action == "restart":
+        c.restart()
+    return {"ok": True}
+
+
+def webdav_service_status() -> dict[str, Any]:
+    c = _get_container(WEBDAV_CONTAINER)
+    if not c:
+        return {"stdout": "inactive"}
+    try:
+        c.reload()
+    except Exception:
+        return {"stdout": "inactive"}
+    running = c.status == "running"
+    return {"stdout": "active" if running else "inactive"}
+
+
+# ---------------------------------------------------------------- WebDAV users
+
+def set_webdav_password(username: str, password: str) -> dict[str, Any]:
+    ensure_webdav_packages()
+    c = _get_container(WEBDAV_CONTAINER)
+    if not c:
+        write_webdav_config_to_container(_webdav_config().get("shares", []), [])
+        c = _get_container(WEBDAV_CONTAINER)
+        if not c:
+            return {"ok": False, "stderr": "WebDAV container could not be created"}
+
+    for _ in range(20):
+        try:
+            c.reload()
+        except Exception:
+            pass
+        if c.status == "running":
+            break
+        import time
+        time.sleep(0.5)
+
+    if c.status != "running":
+        return {"ok": False, "stderr": "WebDAV container not running"}
+
+    # scality/docker-standalone-webdav uses htpasswd for auth
+    res = c.exec_run(f"htpasswd -cb /etc/nginx/htpasswd {username} {password}")
     if res.exit_code == 0:
-        # Also track in config for display
-        cfg = _smb_config()
+        cfg = _webdav_config()
         users = cfg.get("users", [])
         if not any(u["username"] == username for u in users):
             users.append({"username": username, "password": password})
-            _save_smb_config({"shares": cfg.get("shares", []), "users": users})
+            _save_webdav_config({"shares": cfg.get("shares", []), "users": users})
     return {"ok": res.exit_code == 0, "stderr": res.output.decode(errors="replace") if res.output else ""}
 
 
-def delete_smb_user(username: str) -> dict[str, Any]:
-    c = _get_container(SMB_CONTAINER)
+def delete_webdav_user(username: str) -> dict[str, Any]:
+    c = _get_container(WEBDAV_CONTAINER)
     if not c:
-        return {"ok": False, "stderr": "SMB container not running"}
-    res = c.exec_run(f"smbpasswd -x {username}")
+        return {"ok": False, "stderr": "WebDAV container not running"}
+    res = c.exec_run(f"htpasswd -D /etc/nginx/htpasswd {username}")
     return {"ok": res.exit_code == 0, "stderr": res.output.decode(errors="replace") if res.output else ""}
 
 
-def list_smb_users() -> list[str]:
-    cfg = _smb_config()
+def list_webdav_users() -> list[str]:
+    cfg = _webdav_config()
     return [u.get("username", "") for u in cfg.get("users", []) if u.get("username")]
 
 
 # ---------------------------------------------------------------- Status aggregation
 
-def nfs_server_status() -> dict[str, Any]:
-    svc = nfs_service_status()
-    exports = list_nfs_exports()
-    return {
-        "installed": nfs_server_installed(),
-        "service_active": svc.get("stdout", "").strip() == "active",
-        "exports": exports,
-    }
+def ftp_server_status() -> dict[str, Any]:
+    c = _get_container(FTP_CONTAINER)
+    installed = c is not None
+    if not c:
+        return {"stdout": "inactive", "installed": False}
+    try:
+        c.reload()
+    except Exception:
+        return {"stdout": "inactive", "installed": True}
+    running = c.status == "running"
+    return {"stdout": "active" if running else "inactive", "installed": True}
 
 
-def smb_server_status() -> dict[str, Any]:
-    svc = smb_service_status()
-    shares = list_smb_shares()
-    users = list_smb_users()
-    return {
-        "installed": smb_server_installed(),
-        "smbd_active": svc.get("smbd", {}).get("stdout", "").strip() == "active",
-        "nmbd_active": svc.get("nmbd", {}).get("stdout", "").strip() == "active",
-        "shares": shares,
-        "users": users,
-    }
-
-
-# ---------------------------------------------------------------- Compatibility wrappers (old host-based API)
-
-def _nfs_opts_to_str(opts: dict[str, Any]) -> str:
-    parts = []
-    if opts.get("readonly"):
-        parts.append("ro")
-    else:
-        parts.append("rw")
-    if opts.get("sync", True):
-        parts.append("sync")
-    else:
-        parts.append("async")
-    if opts.get("no_root_squash"):
-        parts.append("no_root_squash")
-    else:
-        parts.append("root_squash")
-    if opts.get("no_subtree_check", True):
-        parts.append("no_subtree_check")
-    if opts.get("insecure"):
-        parts.append("insecure")
-    if opts.get("fsid"):
-        parts.append(f"fsid={opts['fsid']}")
-    return ",".join(parts)
-
-
-def _smb_opts_to_str(opts: dict[str, Any]) -> str:
-    lines = []
-    if opts.get("readonly"):
-        lines.append("   read only = yes")
-    else:
-        lines.append("   read only = no")
-    if opts.get("guest_ok"):
-        lines.append("   guest ok = yes")
-        lines.append("   map to guest = Bad User")
-    else:
-        lines.append("   guest ok = no")
-    if opts.get("browseable", True):
-        lines.append("   browseable = yes")
-    else:
-        lines.append("   browseable = no")
-    if opts.get("create_mask"):
-        lines.append(f"   create mask = {opts['create_mask']}")
-    if opts.get("directory_mask"):
-        lines.append(f"   directory mask = {opts['directory_mask']}")
-    if opts.get("force_user"):
-        lines.append(f"   force user = {opts['force_user']}")
-    if opts.get("force_group"):
-        lines.append(f"   force group = {opts['force_group']}")
-    if opts.get("valid_users"):
-        lines.append(f"   valid users = {opts['valid_users']}")
-    if opts.get("invalid_users"):
-        lines.append(f"   invalid users = {opts['invalid_users']}")
-    if opts.get("write_list"):
-        lines.append(f"   write list = {opts['write_list']}")
-    if opts.get("read_list"):
-        lines.append(f"   read list = {opts['read_list']}")
-    if opts.get("veto_files"):
-        lines.append(f"   veto files = {opts['veto_files']}")
-    if opts.get("hide_files"):
-        lines.append(f"   hide files = {opts['hide_files']}")
-    return "\n".join(lines)
+def webdav_server_status() -> dict[str, Any]:
+    c = _get_container(WEBDAV_CONTAINER)
+    installed = c is not None
+    if not c:
+        return {"stdout": "inactive", "installed": False}
+    try:
+        c.reload()
+    except Exception:
+        return {"stdout": "inactive", "installed": True}
+    running = c.status == "running"
+    return {"stdout": "active" if running else "inactive", "installed": True}

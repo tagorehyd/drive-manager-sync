@@ -942,61 +942,55 @@ $("#roots-form").addEventListener("submit", async (e) => {
 
 // ------------------------------------------------------------ servers
 loaders.servers = async () => {
-  const [nfs, smb] = await Promise.all([api("GET", "/api/servers/nfs"), api("GET", "/api/servers/smb")]);
-  renderNfs(nfs);
-  renderSmb(smb);
+  const [ftp, webdav] = await Promise.all([api("GET", "/api/servers/ftp"), api("GET", "/api/servers/webdav")]);
+  renderFtp(ftp);
+  renderWebdav(webdav);
 };
 
-function renderNfs(d) {
+function renderFtp(d) {
   const status = d.service_active ? "active" : "inactive";
   const cls = d.service_active ? "badge ok" : "badge bad";
-  $("#nfs-status").className = cls;
-  $("#nfs-status").textContent = d.installed ? (d.service_active ? "Active" : "Stopped") : "Not installed";
+  $("#ftp-status").className = cls;
+  $("#ftp-status").textContent = d.installed ? (d.service_active ? "Active" : "Stopped") : "Not installed";
 
-  // Toggle button visibility based on state
   const installed = d.installed;
   const running = d.service_active;
-  $("#nfs-install").style.display = installed ? "none" : "inline-block";
-  $("#nfs-start").style.display = (installed && !running) ? "inline-block" : "none";
-  $("#nfs-stop").style.display = (installed && running) ? "inline-block" : "none";
-  $("#nfs-restart").style.display = installed ? "inline-block" : "none";
+  $("#ftp-install").style.display = installed ? "none" : "inline-block";
+  $("#ftp-start").style.display = (installed && !running) ? "inline-block" : "none";
+  $("#ftp-stop").style.display = (installed && running) ? "inline-block" : "none";
+  $("#ftp-restart").style.display = installed ? "inline-block" : "none";
 
-  const body = $("#nfs-exports-body");
-  body.innerHTML = d.exports.map((e) => `<tr>
-    <td class="font-mono text-xs break-all">${esc(e.path)}</td>
-    <td class="text-xs">${Object.keys(e.clients).join(", ") || "*"}</td>
-    <td class="font-mono text-xs break-all">${esc(e.options || "")}</td>
-    <td>${e.exists ? '<span class="badge ok">yes</span>' : '<span class="badge bad">no</span>'}</td>
-    <td>${e.mounted ? '<span class="badge ok">yes</span>' : '<span class="badge muted">no</span>'}</td>
-    <td class="whitespace-nowrap"><button class="btn btn-sm btn-danger" data-nfs-rm="${esc(e.path)}">Remove</button></td>
-  </tr>`).join("");
-}
-
-function renderSmb(d) {
-  const active = d.smbd_active && d.nmbd_active;
-  const cls = active ? "badge ok" : "badge bad";
-  $("#smb-status").className = cls;
-  $("#smb-status").textContent = d.installed ? (active ? "Active" : "Stopped") : "Not installed";
-
-  // Toggle button visibility based on state
-  const installed = d.installed;
-  const running = active;
-  $("#smb-install").style.display = installed ? "none" : "inline-block";
-  $("#smb-start").style.display = (installed && !running) ? "inline-block" : "none";
-  $("#smb-stop").style.display = (installed && running) ? "inline-block" : "none";
-  $("#smb-restart").style.display = installed ? "inline-block" : "none";
-
-  const body = $("#smb-shares-body");
+  const body = $("#ftp-shares-body");
   body.innerHTML = d.shares.map((s) => `<tr>
     <td><b>${esc(s.name)}</b></td>
     <td class="font-mono text-xs break-all">${esc(s.path)}</td>
-    <td>${s.options["read only"] === "yes" ? '<span class="badge muted">ro</span>' : '<span class="badge ok">rw</span>'}</td>
-    <td>${s.options["guest ok"] === "yes" ? '<span class="badge ok">yes</span>' : '<span class="badge muted">no</span>'}</td>
-    <td>${s.options["browseable"] === "yes" ? '<span class="badge ok">yes</span>' : '<span class="badge muted">no</span>'}</td>
     <td>${s.exists ? '<span class="badge ok">yes</span>' : '<span class="badge bad">no</span>'}</td>
-    <td class="whitespace-nowrap"><button class="btn btn-sm btn-danger" data-smb-rm="${esc(s.name)}">Remove</button></td>
+    <td class="whitespace-nowrap"><button class="btn btn-sm btn-danger" data-ftp-rm="${esc(s.name)}">Remove</button></td>
   </tr>`).join("");
-  $("#smb-users-list").textContent = d.users && d.users.length ? d.users.join(", ") : "(none)";
+  $("#ftp-users-list").textContent = d.users && d.users.length ? d.users.join(", ") : "(none)";
+}
+
+function renderWebdav(d) {
+  const status = d.service_active ? "active" : "inactive";
+  const cls = d.service_active ? "badge ok" : "badge bad";
+  $("#webdav-status").className = cls;
+  $("#webdav-status").textContent = d.installed ? (d.service_active ? "Active" : "Stopped") : "Not installed";
+
+  const installed = d.installed;
+  const running = d.service_active;
+  $("#webdav-install").style.display = installed ? "none" : "inline-block";
+  $("#webdav-start").style.display = (installed && !running) ? "inline-block" : "none";
+  $("#webdav-stop").style.display = (installed && running) ? "inline-block" : "none";
+  $("#webdav-restart").style.display = installed ? "inline-block" : "none";
+
+  const body = $("#webdav-shares-body");
+  body.innerHTML = d.shares.map((s) => `<tr>
+    <td><b>${esc(s.name)}</b></td>
+    <td class="font-mono text-xs break-all">${esc(s.path)}</td>
+    <td>${s.exists ? '<span class="badge ok">yes</span>' : '<span class="badge bad">no</span>'}</td>
+    <td class="whitespace-nowrap"><button class="btn btn-sm btn-danger" data-webdav-rm="${esc(s.name)}">Remove</button></td>
+  </tr>`).join("");
+  $("#webdav-users-list").textContent = d.users && d.users.length ? d.users.join(", ") : "(none)";
 }
 
 // Server service actions (install, start, stop, restart)
@@ -1017,95 +1011,84 @@ function installAction(apiPath) {
   };
 }
 
-// NFS buttons
-$("#nfs-install").addEventListener("click", installAction("/api/servers/nfs/install"));
-$("#nfs-start").addEventListener("click", serverAction("/api/servers/nfs/service", "start"));
-$("#nfs-stop").addEventListener("click", serverAction("/api/servers/nfs/service", "stop"));
-$("#nfs-restart").addEventListener("click", serverAction("/api/servers/nfs/service", "restart"));
-$("#nfs-refresh").addEventListener("click", loaders.servers);
+// FTP buttons
+$("#ftp-install").addEventListener("click", installAction("/api/servers/ftp/install"));
+$("#ftp-start").addEventListener("click", serverAction("/api/servers/ftp/service", "start"));
+$("#ftp-stop").addEventListener("click", serverAction("/api/servers/ftp/service", "stop"));
+$("#ftp-restart").addEventListener("click", serverAction("/api/servers/ftp/service", "restart"));
+$("#ftp-refresh").addEventListener("click", loaders.servers);
 
-$("#nfs-export-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  const body = {
-    path: fd.get("path"),
-    client: fd.get("client") || "*",
-    options: {
-      readonly: fd.get("readonly") === "on",
-      sync: fd.get("sync") !== "off",
-      no_root_squash: fd.get("no_root_squash") === "on",
-      no_subtree_check: fd.get("no_subtree_check") !== "off",
-      insecure: fd.get("insecure") === "on",
-    },
-  };
-  const r = await act(e.submitter, () => api("POST", "/api/servers/nfs/exports", body), "Export added");
-  if (r) { e.target.reset(); loaders.servers(); }
-});
-
-$("#nfs-exports-body").addEventListener("click", async (e) => {
-  const b = e.target.closest("[data-nfs-rm]");
-  if (!b) return;
-  const path = b.dataset.nfsRm;
-  if (!(await typedConfirm("Remove NFS export", `Remove export ${path}?`, "REMOVE"))) return;
-  const r = await act(b, () => api("DELETE", `/api/servers/nfs/exports?path=${encodeURIComponent(path)}`), "Export removed");
-  if (r) loaders.servers();
-});
-
-// SMB buttons
-$("#smb-install").addEventListener("click", installAction("/api/servers/smb/install"));
-$("#smb-start").addEventListener("click", serverAction("/api/servers/smb/service", "start"));
-$("#smb-stop").addEventListener("click", serverAction("/api/servers/smb/service", "stop"));
-$("#smb-restart").addEventListener("click", serverAction("/api/servers/smb/service", "restart"));
-$("#smb-refresh").addEventListener("click", loaders.servers);
-
-$("#smb-share-form").addEventListener("submit", async (e) => {
+$("#ftp-share-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);
   const body = {
     name: fd.get("name"),
     path: fd.get("path"),
-    options: {
-      readonly: fd.get("readonly") === "on",
-      guest_ok: fd.get("guest_ok") === "on",
-      browseable: fd.get("browseable") !== "off",
-    },
   };
-  const forceUser = fd.get("force_user");
-  if (forceUser) body.options.force_user = forceUser;
-  const forceGroup = fd.get("force_group");
-  if (forceGroup) body.options.force_group = forceGroup;
-  const r = await act(e.submitter, () => api("POST", "/api/servers/smb/shares", body), "Share added");
+  const r = await act(e.submitter, () => api("POST", "/api/servers/ftp/shares", body), "Share added");
   if (r) { e.target.reset(); loaders.servers(); }
 });
 
-$("#smb-shares-body").addEventListener("click", async (e) => {
-  const b = e.target.closest("[data-smb-rm]");
+$("#ftp-shares-body").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-ftp-rm]");
   if (!b) return;
-  const name = b.dataset.smbRm;
-  if (!(await typedConfirm("Remove SMB share", `Remove share "${name}"?`, "REMOVE"))) return;
-  const r = await act(b, () => api("DELETE", `/api/servers/smb/shares/${encodeURIComponent(name)}`), "Share removed");
+  const name = b.dataset.ftpRm;
+  if (!(await typedConfirm("Remove FTP share", `Remove share "${name}"?`, "REMOVE"))) return;
+  const r = await act(b, () => api("DELETE", `/api/servers/ftp/shares/${encodeURIComponent(name)}`), "Share removed");
   if (r) loaders.servers();
 });
 
-// SMB users
-$("#smb-user-add").addEventListener("click", async (e) => {
-  const name = $("#smb-user-name").value.trim();
-  const pass = $("#smb-user-pass").value;
+// FTP users
+$("#ftp-user-add").addEventListener("click", async (e) => {
+  const name = $("#ftp-user-name").value.trim();
+  const pass = $("#ftp-user-pass").value;
   if (!name || !pass) { toast("Username and password required", "error"); return; }
-  const r = await act(e.target, () => api("POST", "/api/servers/smb/users", { username: name, password: pass }), "User added");
+  const r = await act(e.target, () => api("POST", "/api/servers/ftp/users", { username: name, password: pass }), "User added");
   if (r) {
-    $("#smb-user-name").value = "";
-    $("#smb-user-pass").value = "";
+    $("#ftp-user-name").value = "";
+    $("#ftp-user-pass").value = "";
     loaders.servers();
   }
 });
 
-// SMB force user/group toggle
-$("#smb-force-user-enable").addEventListener("change", (e) => {
-  $("#smb-force-user").disabled = !e.target.checked;
+// WebDAV buttons
+$("#webdav-install").addEventListener("click", installAction("/api/servers/webdav/install"));
+$("#webdav-start").addEventListener("click", serverAction("/api/servers/webdav/service", "start"));
+$("#webdav-stop").addEventListener("click", serverAction("/api/servers/webdav/service", "stop"));
+$("#webdav-restart").addEventListener("click", serverAction("/api/servers/webdav/service", "restart"));
+$("#webdav-refresh").addEventListener("click", loaders.servers);
+
+$("#webdav-share-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const body = {
+    name: fd.get("name"),
+    path: fd.get("path"),
+  };
+  const r = await act(e.submitter, () => api("POST", "/api/servers/webdav/shares", body), "Share added");
+  if (r) { e.target.reset(); loaders.servers(); }
 });
-$("#smb-force-group-enable").addEventListener("change", (e) => {
-  $("#smb-force-group").disabled = !e.target.checked;
+
+$("#webdav-shares-body").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-webdav-rm]");
+  if (!b) return;
+  const name = b.dataset.webdavRm;
+  if (!(await typedConfirm("Remove WebDAV share", `Remove share "${name}"?`, "REMOVE"))) return;
+  const r = await act(b, () => api("DELETE", `/api/servers/webdav/shares/${encodeURIComponent(name)}`), "Share removed");
+  if (r) loaders.servers();
+});
+
+// WebDAV users
+$("#webdav-user-add").addEventListener("click", async (e) => {
+  const name = $("#webdav-user-name").value.trim();
+  const pass = $("#webdav-user-pass").value;
+  if (!name || !pass) { toast("Username and password required", "error"); return; }
+  const r = await act(e.target, () => api("POST", "/api/servers/webdav/users", { username: name, password: pass }), "User added");
+  if (r) {
+    $("#webdav-user-name").value = "";
+    $("#webdav-user-pass").value = "";
+    loaders.servers();
+  }
 });
 
 // ------------------------------------------------------------ theme

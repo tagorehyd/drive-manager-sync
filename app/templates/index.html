@@ -375,90 +375,77 @@
 <section data-section="servers" class="{% if tab != 'servers' %}hidden{% endif %} space-y-4">
   <div class="section-header">
     <h1 class="section-title">Servers</h1>
-    <p class="section-subtitle">Configure NFS and SMB/SMB sharing services</p>
+    <p class="section-subtitle">Configure FTP and WebDAV sharing services</p>
   </div>
   <div class="grid grid-cols-2 gap-4">
-    <!-- NFS Server -->
+    <!-- FTP Server -->
     <div class="card">
       <div class="flex items-center justify-between mb-3">
-        <h2 class="font-semibold">NFS Server</h2>
-        <span id="nfs-status" class="badge muted">unknown</span>
+        <h2 class="font-semibold">FTP Server</h2>
+        <span id="ftp-status" class="badge muted">unknown</span>
       </div>
       <div class="flex gap-2 mb-3">
-        <button class="btn btn-sm" id="nfs-install" style="display:none">Install</button>
-        <button class="btn btn-sm" id="nfs-start" style="display:none">Start</button>
-        <button class="btn btn-sm" id="nfs-stop" style="display:none">Stop</button>
-        <button class="btn btn-sm" id="nfs-restart" style="display:none">Restart</button>
-        <button class="btn btn-sm" id="nfs-refresh">Refresh</button>
-      </div>
-      <div class="card mb-3 p-3">
-        <h3 class="font-semibold mb-2">Add Export</h3>
-        <form id="nfs-export-form" class="grid grid-cols-4 gap-3">
-          <label><span class="lbl">Path</span><div class="flex gap-2"><input class="inp flex-1" name="path" id="nfs-exp-path" placeholder="/mnt/share" required><button type="button" class="btn" data-browse="#nfs-exp-path">Browse</button></div></label>
-          <label><span class="lbl">Client/Network</span><input class="inp" name="client" value="*" placeholder="* or 192.168.1.0/24"></label>
-          <label class="col-span-2"><span class="lbl">Options</span>
-            <div class="flex flex-wrap gap-2">
-              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="readonly"> Read-only</label>
-              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="sync" checked> Sync</label>
-              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="no_root_squash"> No root squash</label>
-              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="no_subtree_check" checked> No subtree check</label>
-              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="insecure"> Insecure</label>
-            </div>
-          </label>
-          <div class="col-span-4"><button class="btn btn-primary" type="submit">Add Export</button></div>
-        </form>
-      </div>
-      <h3 class="font-semibold mb-2">Exports</h3>
-      <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Path</th><th>Client</th><th>Options</th><th>Exists</th><th>Mounted</th><th></th></tr></thead>
-        <tbody id="nfs-exports-body"></tbody>
-      </table></div>
-    </div>
-
-    <!-- SMB Server -->
-    <div class="card">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="font-semibold">SMB Server</h2>
-        <span id="smb-status" class="badge muted">unknown</span>
-      </div>
-      <div class="flex gap-2 mb-3">
-        <button class="btn btn-sm" id="smb-install" style="display:none">Install</button>
-        <button class="btn btn-sm" id="smb-start" style="display:none">Start</button>
-        <button class="btn btn-sm" id="smb-stop" style="display:none">Stop</button>
-        <button class="btn btn-sm" id="smb-restart" style="display:none">Restart</button>
-        <button class="btn btn-sm" id="smb-refresh">Refresh</button>
+        <button class="btn btn-sm" id="ftp-install" style="display:none">Install</button>
+        <button class="btn btn-sm" id="ftp-start" style="display:none">Start</button>
+        <button class="btn btn-sm" id="ftp-stop" style="display:none">Stop</button>
+        <button class="btn btn-sm" id="ftp-restart" style="display:none">Restart</button>
+        <button class="btn btn-sm" id="ftp-refresh">Refresh</button>
       </div>
       <div class="card mb-3 p-3">
         <h3 class="font-semibold mb-2">Add Share</h3>
-        <form id="smb-share-form" class="grid grid-cols-4 gap-3">
+        <form id="ftp-share-form" class="grid grid-cols-4 gap-3">
           <label><span class="lbl">Share Name</span><input class="inp" name="name" placeholder="media" required></label>
-          <label><span class="lbl">Path</span><div class="flex gap-2"><input class="inp flex-1" name="path" id="smb-share-path" placeholder="/mnt/share" required><button type="button" class="btn" data-browse="#smb-share-path">Browse</button></div></label>
-          <label class="col-span-4"><span class="lbl">Options</span>
-            <div class="flex flex-wrap gap-2">
-              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="readonly"> Read-only</label>
-              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="guest_ok"> Guest access</label>
-              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="browseable" checked> Browseable</label>
-              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="force_user" id="smb-force-user-enable"> Force user</label>
-              <input class="inp w-auto text-sm" name="force_user" id="smb-force-user" placeholder="username" disabled>
-              <label class="flex items-center gap-1 text-sm"><input type="checkbox" name="force_group" id="smb-force-group-enable"> Force group</label>
-              <input class="inp w-auto text-sm" name="force_group" id="smb-force-group" placeholder="group" disabled>
-            </div>
-          </label>
+          <label><span class="lbl">Path</span><div class="flex gap-2"><input class="inp flex-1" name="path" id="ftp-share-path" placeholder="/mnt/share" required><button type="button" class="btn" data-browse="#ftp-share-path">Browse</button></div></label>
           <div class="col-span-4"><button class="btn btn-primary" type="submit">Add Share</button></div>
         </form>
       </div>
       <h3 class="font-semibold mb-2">Shares</h3>
       <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Name</th><th>Path</th><th>Read-only</th><th>Guest</th><th>Browseable</th><th>Exists</th><th></th></tr></thead>
-        <tbody id="smb-shares-body"></tbody>
+        <thead><tr><th>Name</th><th>Path</th><th>Exists</th><th></th></tr></thead>
+        <tbody id="ftp-shares-body"></tbody>
       </table></div>
-      <h3 class="font-semibold mt-4 mb-2">SMB Users</h3>
+      <h3 class="font-semibold mt-4 mb-2">FTP Users</h3>
       <div class="flex gap-2 mb-2">
-        <input class="inp w-48" id="smb-user-name" placeholder="username">
-        <input class="inp w-48" type="password" id="smb-user-pass" placeholder="password">
-        <button class="btn btn-primary" id="smb-user-add">Add User</button>
+        <input class="inp w-48" id="ftp-user-name" placeholder="username">
+        <input class="inp w-48" type="password" id="ftp-user-pass" placeholder="password">
+        <button class="btn btn-primary" id="ftp-user-add">Add User</button>
       </div>
-      <div id="smb-users-list" class="text-sm text-slate-500"></div>
+      <div id="ftp-users-list" class="text-sm text-slate-500"></div>
+    </div>
+
+    <!-- WebDAV Server -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-semibold">WebDAV Server</h2>
+        <span id="webdav-status" class="badge muted">unknown</span>
+      </div>
+      <div class="flex gap-2 mb-3">
+        <button class="btn btn-sm" id="webdav-install" style="display:none">Install</button>
+        <button class="btn btn-sm" id="webdav-start" style="display:none">Start</button>
+        <button class="btn btn-sm" id="webdav-stop" style="display:none">Stop</button>
+        <button class="btn btn-sm" id="webdav-restart" style="display:none">Restart</button>
+        <button class="btn btn-sm" id="webdav-refresh">Refresh</button>
+      </div>
+      <div class="card mb-3 p-3">
+        <h3 class="font-semibold mb-2">Add Share</h3>
+        <form id="webdav-share-form" class="grid grid-cols-4 gap-3">
+          <label><span class="lbl">Share Name</span><input class="inp" name="name" placeholder="media" required></label>
+          <label><span class="lbl">Path</span><div class="flex gap-2"><input class="inp flex-1" name="path" id="webdav-share-path" placeholder="/mnt/share" required><button type="button" class="btn" data-browse="#webdav-share-path">Browse</button></div></label>
+          <div class="col-span-4"><button class="btn btn-primary" type="submit">Add Share</button></div>
+        </form>
+      </div>
+      <h3 class="font-semibold mb-2">Shares</h3>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Name</th><th>Path</th><th>Exists</th><th></th></tr></thead>
+        <tbody id="webdav-shares-body"></tbody>
+      </table></div>
+      <h3 class="font-semibold mt-4 mb-2">WebDAV Users</h3>
+      <div class="flex gap-2 mb-2">
+        <input class="inp w-48" id="webdav-user-name" placeholder="username">
+        <input class="inp w-48" type="password" id="webdav-user-pass" placeholder="password">
+        <button class="btn btn-primary" id="webdav-user-add">Add User</button>
+      </div>
+      <div id="webdav-users-list" class="text-sm text-slate-500"></div>
     </div>
   </div>
 </section>
