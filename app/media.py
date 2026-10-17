@@ -10,7 +10,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 import requests
 from apscheduler.triggers.interval import IntervalTrigger
@@ -28,7 +28,7 @@ SERIES_PATTERNS = [
     re.compile(r"\b(\d{1,2})x(\d{1,3})\b", re.I),
     re.compile(r"\bSeason\s*(\d{1,2})\s*Episode\s*(\d{1,3})\b", re.I),
 ]
-MOVIE_PATTERN = re.compile(r"^(?P<title>.+?)[\s(\[]+(?P<year>(?:19|20)\d{2})(?:[)\]]|\s|$)")
+MOVIE_PATTERN = re.compile(r"^(?P<title>.+?)[\s(\[]+(?P<year>(?:19|20)\d{2})(?:[)\].]|\s|$)")
 LANGUAGES = {
     "telugu": "Telugu", "tel": "Telugu", "tamil": "Tamil", "tam": "Tamil", "hindi": "Hindi", "hin": "Hindi",
     "malayalam": "Malayalam", "mal": "Malayalam", "kannada": "Kannada", "kan": "Kannada",
@@ -56,6 +56,179 @@ def sanitize(value: str) -> str:
     return value or "Unknown"
 
 
+# ================================================================ renaming (matches Media-RenamerForJelly)
+
+def sanitize_filename_text(value: Any) -> str:
+    text = str(value or "Unknown Movie").strip()
+    text = re.sub(r'[<>:"/\\|?*]', " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip(" .") or "Unknown Movie"
+
+
+def _as_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple, set)):
+        items = value
+    else:
+        items = [value]
+    cleaned: list[str] = []
+    for item in items:
+        if item is None:
+            continue
+        text = str(item).strip()
+        if text:
+            cleaned.append(text)
+    return cleaned
+
+
+def normalize_language(value: Any) -> list[str]:
+    normalized: list[str] = []
+    for item in _as_list(value):
+        text = str(item).strip()
+        if not text:
+            continue
+        text = text.split("/")[0].split(",")[0].strip()
+        cleaned = sanitize_filename_text(text).lower()
+        if cleaned and cleaned != "unknown":
+            normalized.append(cleaned)
+    return normalized or ["unknown"]
+
+
+def normalize_quality(value: Any) -> list[str]:
+    normalized: list[str] = []
+    for item in _as_list(value):
+        text = str(item).strip()
+        if not text:
+            continue
+        text = text.replace("-", " ").replace("_", " ")
+        text = re.sub(r"\s+", " ", text)
+        cleaned = sanitize_filename_text(text).lower()
+        if cleaned and cleaned != "unknown":
+            normalized.append(cleaned)
+    return normalized or ["unknown"]
+
+
+def _matches_any(candidate_values: Iterable[str], configured_values: Iterable[str]) -> bool:
+    candidate_list = [str(value).strip().lower() for value in candidate_values if str(value).strip()]
+    configured_list = [str(value).strip().lower() for value in configured_values if str(value).strip()]
+    if not candidate_list or not configured_list:
+        return False
+    if "*" in configured_list:
+        return True
+    for candidate in candidate_list:
+        for configured in configured_list:
+            if configured in candidate or candidate in configured:
+                return True
+    return False
+
+
+_CATEGORY_RULES_PATH = Path(__file__).resolve().parent.parent / "state" / "category_rules.json"
+
+
+def _default_category_rules() -> dict[str, Any]:
+    return {
+        "rules": [
+            {"category": "Temp_cam_RIPS", "language": ["*"], "quality": ["dvdscr", "cam", "ts", "telecine"]},
+            {"category": "Bollywood", "language": ["hindi"], "quality": ["*"]},
+            {"category": "Tollywood", "language": ["telugu", "tamil", "malayalam", "kannada"], "quality": ["*"]},
+            {"category": "Hollywood", "language": ["english", "japanese", "japan", "chinese", "china", "german", "french", "spanish", "italian", "korean"], "quality": ["*"]},
+        ]
+    }
+
+
+def load_category_rules_from_settings(settings: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    """Read category rules from media-jobs settings (flat {language: category} or rule list)."""
+    settings = settings or config.load("media-jobs")["settings"]
+    rules_cfg = settings.get("category_rules") or {}
+    if isinstance(rules_cfg, list):
+        return [r for r in rules_cfg if isinstance(r, dict)]
+    # flat {language: category} -> convert to rule list
+    rules = []
+    for lang, cat in rules_cfg.items():
+        if lang.strip() and cat.strip():
+            rules.append({"category": cat.strip(), "language": [lang.strip()], "quality": ["*"]})
+    if not rules:
+        rules = _default_category_rules()["rules"]
+    return rules
+
+
+def resolve_category(language: Any, quality: Any, settings: dict[str, Any] | None = None) -> str:
+    normalized_language = normalize_language(language)
+    normalized_quality = normalize_quality(quality)
+    matching_rules = []
+    for index, rule in enumerate(load_category_rules_from_settings(settings)):
+        rule_language = _as_list(rule.get("language"))
+        rule_quality = _as_list(rule.get("quality"))
+        if _matches_any(normalized_language, rule_language) and _matches_any(normalized_quality, rule_quality):
+            matching_rules.append((index, rule))
+    if not matching_rules:
+        return "Hollywood"
+    for _, rule in matching_rules:
+        category = str(rule.get("category") or "Hollywood").strip()
+        if category:
+            return category
+    return "Hollywood"
+
+
+def build_target_filename(metadata: Dict[str, Any], extension: str) -> str:
+    title = sanitize_filename_text(metadata.get("movie_name") or "Unknown Movie")
+    year = metadata.get("year")
+    year_text = f"({year})" if year else "(Unknown)"
+    return f"{title} {year_text}{extension.lower()}"
+
+
+def build_series_target_filename(metadata: Dict[str, Any], extension: str) -> str:
+    title = sanitize_filename_text(metadata.get("movie_name") or "Unknown Series")
+    season = metadata.get("season")
+    episode = metadata.get("episode")
+    season_text = f"S{int(season):02d}" if season is not None else "S00"
+    episode_text = f"E{int(episode):02d}" if episode is not None else "E00"
+    return f"{title} {season_text}{episode_text}{extension.lower()}"
+
+
+def rename_series(file_path: str | Path, metadata: Dict[str, Any], out_dir: str | Path) -> str:
+    source_path = Path(file_path)
+    out_root = Path(out_dir)
+    if not source_path.exists():
+        raise FileNotFoundError(f"Source file not found: {source_path}")
+    series_dir = out_root / "Series" / sanitize_filename_text(metadata.get("movie_name") or "Unknown Series")
+    season_dir = series_dir / f"Season {int(metadata.get('season') or 0):02d}"
+    season_dir.mkdir(parents=True, exist_ok=True)
+    extension = source_path.suffix.lower()
+    target_name = build_series_target_filename(metadata, extension)
+    destination = season_dir / target_name
+    counter = 1
+    while destination.exists():
+        stem = destination.stem
+        destination = season_dir / f"{stem}_{counter}{extension}"
+        counter += 1
+    shutil.move(str(source_path), str(destination))
+    return str(destination)
+
+
+def rename_and_move(file_path: str | Path, metadata: Dict[str, Any], in_dir: str | Path, out_dir: str | Path, settings: dict[str, Any] | None = None) -> str:
+    source_path = Path(file_path)
+    out_root = Path(out_dir)
+    if not source_path.exists():
+        raise FileNotFoundError(f"Source file not found: {source_path}")
+    if metadata.get("is_series"):
+        return rename_series(file_path, metadata, out_root)
+    category = resolve_category(metadata.get("language"), metadata.get("quality"), settings)
+    base_dir = out_root / category
+    base_dir.mkdir(parents=True, exist_ok=True)
+    extension = source_path.suffix.lower()
+    target_name = build_target_filename(metadata, extension)
+    destination = base_dir / target_name
+    counter = 1
+    while destination.exists():
+        stem = destination.stem
+        destination = base_dir / f"{stem}_{counter}{extension}"
+        counter += 1
+    shutil.move(str(source_path), str(destination))
+    return str(destination)
+
+
 def _title(text: str) -> str:
     text = NOISE.sub("", text)
     text = re.sub(r"[\s(\[]*(?:19|20)\d{2}[)\]]?\s*$", "", text)
@@ -70,6 +243,23 @@ def detect_language(name: str) -> str | None:
     return None
 
 
+QUALITY_HINTS = (
+    "2160p", "1080p", "720p", "480p", "4k", "uhd", "hdr",
+    "x264", "x265", "h264", "h265", "hevc", "web-dl", "webdl",
+    "webrip", "bluray", "blu-ray", "brrip", "hdrip", "dvdrip",
+    "dvdscr", "cam", "ts", "tc", "telecine", "aac", "ddp5.1",
+    "dts", "10bit", "proper", "repack",
+)
+
+
+def detect_quality(name: str) -> str | None:
+    lowered = name.lower().replace("_", " ").replace("-", " ")
+    for hint in sorted(QUALITY_HINTS, key=len, reverse=True):
+        if re.search(rf"\b{re.escape(hint)}\b", lowered):
+            return hint.upper().replace("-", "")
+    return None
+
+
 def detect_series(filename: str, parent: str = "") -> dict[str, Any] | None:
     cleaned = clean_name(filename)
     for pattern in SERIES_PATTERNS:
@@ -78,8 +268,9 @@ def detect_series(filename: str, parent: str = "") -> dict[str, Any] | None:
             show = _title(cleaned[:m.start()])
             if not show and parent:
                 show = _title(re.sub(r"\bSeason\s*\d+\b|\bS\d{1,2}\b", "", clean_name(parent), flags=re.I))
-            return {"kind": "series", "title": show or "Unknown Show", "season": int(m.group(1)),
-                    "episode": int(m.group(2)), "year": None, "language": detect_language(filename), "source": "series"}
+            return {"kind": "series", "title": show or "Unknown Show", "movie_name": show or "Unknown Show",
+                    "season": int(m.group(1)), "episode": int(m.group(2)), "year": None,
+                    "language": detect_language(filename), "quality": detect_quality(filename), "source": "series"}
     return None
 
 
@@ -91,8 +282,8 @@ def detect_movie(filename: str) -> dict[str, Any] | None:
     title = _title(m.group("title"))
     if not title:
         return None
-    return {"kind": "movie", "title": title, "year": int(m.group("year")), "season": None, "episode": None,
-            "language": detect_language(filename), "source": "movie"}
+    return {"kind": "movie", "title": title, "movie_name": title, "year": int(m.group("year")), "season": None, "episode": None,
+            "language": detect_language(filename), "quality": detect_quality(filename), "source": "movie"}
 
 
 def _extract_json(text: str) -> dict[str, Any] | None:
@@ -110,6 +301,25 @@ def _extract_json(text: str) -> dict[str, Any] | None:
     return data if isinstance(data, dict) else None
 
 
+def llm_payload(filename: str, settings: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Build the LLM chat-completion request body for a filename (without sending it)."""
+    settings = settings or config.load("media-jobs")["settings"]
+    key = os.environ.get("OPENAI_COMPATIBLE_API_KEY", "")
+    base = (os.environ.get("OPENAI_COMPATIBLE_BASE_URL") or settings.get("llm_base_url") or "").rstrip("/")
+    prompt = ("Identify the movie from this release file name. Reply with ONLY JSON: "
+              '{"movie_name": "", "year": "", "language": "", "imdb_id": ""}. Use empty strings when unsure.')
+    return {
+        "available": bool(key and base and settings.get("use_llm", True)),
+        "url": f"{base}/chat/completions" if base else None,
+        "model": settings.get("llm_model", "gpt-4o-mini"),
+        "temperature": 0,
+        "messages": [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": filename},
+        ],
+    }
+
+
 def llm_identify(filename: str, settings: dict[str, Any] | None = None, timeout: float = 30) -> dict[str, Any] | None:
     """OpenAI-compatible chat completion returning {movie_name, year, language, imdb_id}."""
     settings = settings or config.load("media-jobs")["settings"]
@@ -117,14 +327,12 @@ def llm_identify(filename: str, settings: dict[str, Any] | None = None, timeout:
     base = (os.environ.get("OPENAI_COMPATIBLE_BASE_URL") or settings.get("llm_base_url") or "").rstrip("/")
     if not key or not base or not settings.get("use_llm", True):
         return None
-    prompt = ("Identify the movie from this release file name. Reply with ONLY JSON: "
-              '{"movie_name": "", "year": "", "language": "", "imdb_id": ""}. Use empty strings when unsure.')
+    payload = llm_payload(filename, settings)
     try:
-        resp = requests.post(f"{base}/chat/completions", timeout=timeout,
+        resp = requests.post(payload["url"], timeout=timeout,
                              headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                             json={"model": settings.get("llm_model", "gpt-4o-mini"), "temperature": 0,
-                                   "messages": [{"role": "system", "content": prompt},
-                                                {"role": "user", "content": filename}]})
+                             json={"model": payload["model"], "temperature": payload["temperature"],
+                                   "messages": payload["messages"]})
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
     except (requests.RequestException, KeyError, IndexError, ValueError) as exc:
@@ -137,6 +345,7 @@ def llm_identify(filename: str, settings: dict[str, Any] | None = None, timeout:
     return {"kind": "movie", "title": _title(str(data["movie_name"])) or str(data["movie_name"]).strip(),
             "year": int(year_match.group(0)) if year_match else None, "season": None, "episode": None,
             "language": (str(data.get("language") or "").strip().title() or None) or detect_language(filename),
+            "quality": str(data.get("quality") or detect_quality(filename) or "unknown"),
             "imdb_id": str(data.get("imdb_id") or "").strip() or None, "source": "llm"}
 
 
@@ -144,27 +353,85 @@ def identify(filename: str, parent: str = "", use_llm: bool = True) -> dict[str,
     return detect_series(filename, parent) or detect_movie(filename) or (llm_identify(filename) if use_llm else None)
 
 
-def category_for(language: str | None, settings: dict[str, Any] | None = None) -> str:
+def category_for(language: str | None, quality: str | None = None, settings: dict[str, Any] | None = None) -> str:
     settings = settings or config.load("media-jobs")["settings"]
-    rules = {k.lower(): v for k, v in (settings.get("category_rules") or {}).items()}
-    return sanitize(rules.get((language or "").lower()) or settings.get("default_category") or "Hollywood")
+    return sanitize(resolve_category(language, quality, settings))
 
 
 def target_path(info: dict[str, Any], destination: str, ext: str, settings: dict[str, Any] | None = None) -> Path:
     ext = ext.lower()
+    settings = settings or config.load("media-jobs")["settings"]
     if info["kind"] == "series":
-        show = sanitize(info["title"])
-        season = f"Season {info['season']:02d}"
-        return Path(destination) / "Series" / show / season / f"{show} S{info['season']:02d}E{info['episode']:02d}{ext}"
-    name = sanitize(f"{info['title']} ({info['year']})" if info.get("year") else info["title"])
-    return Path(destination) / "Movies" / category_for(info.get("language"), settings) / name / f"{name}{ext}"
+        title = sanitize_filename_text(info.get("movie_name") or "Unknown Series")
+        season = int(info.get("season") or 0)
+        episode = int(info.get("episode") or 0)
+        season_dir = Path(destination) / "Series" / title / f"Season {season:02d}"
+        target_name = f"{title} S{season:02d}E{episode:02d}{ext}"
+        return season_dir / target_name
+    name = sanitize_filename_text(info.get("title") or "Unknown Movie")
+    year = info.get("year")
+    year_text = f" ({year})" if year else ""
+    category = resolve_category(info.get("language"), info.get("quality"), settings)
+    target_name = f"{name}{year_text}{ext}"
+    return Path(destination) / "Movies" / category / target_name
 
 
 def preview(filename: str, destination: str = "/mnt/media", use_llm: bool = False) -> dict[str, Any]:
-    info = identify(os.path.basename(filename), os.path.basename(os.path.dirname(filename)), use_llm)
-    if not info:
-        return {"ok": False, "info": None, "target": None, "error": "not recognised"}
-    return {"ok": True, "info": info, "target": str(target_path(info, destination, os.path.splitext(filename)[1]))}
+    """Preview how a filename would be renamed.
+
+    A direct filename match (series/movie pattern) is tried first without an LLM
+    call. If that matches, the rename target is returned with no LLM body.
+    Otherwise the LLM fallback is considered and the LLM request body is exposed
+    so the UI can preview what would be sent to the LLM.
+    """
+    name = os.path.basename(filename)
+    parent = os.path.basename(os.path.dirname(filename) or ".")
+    ext = os.path.splitext(filename)[1]
+
+    # Step 1: direct match without any LLM call.
+    info = identify(name, parent, use_llm=False)
+    if info and info.get("movie_name"):
+        return {
+            "ok": True,
+            "processing_method": "direct match",
+            "source": name,
+            "info": info,
+            "target": str(target_path(info, destination, ext)),
+            "llm_request": None,
+        }
+
+    # Step 2: no direct match -> consider LLM fallback and expose its request body.
+    request = llm_payload(name)
+    if not use_llm or not request.get("available") or not request.get("url"):
+        return {
+            "ok": False,
+            "processing_method": "llm",
+            "source": name,
+            "info": None,
+            "target": None,
+            "error": "no direct match; LLM fallback not enabled",
+            "llm_request": request,
+        }
+
+    llm_info = llm_identify(name)
+    if llm_info and llm_info.get("movie_name"):
+        return {
+            "ok": True,
+            "processing_method": "llm",
+            "source": name,
+            "info": llm_info,
+            "target": str(target_path(llm_info, destination, ext)),
+            "llm_request": request,
+        }
+    return {
+        "ok": False,
+        "processing_method": "llm",
+        "source": name,
+        "info": None,
+        "target": None,
+        "error": "no direct match and LLM did not identify the file",
+        "llm_request": request,
+    }
 
 
 # ================================================================ staged atomic move

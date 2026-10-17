@@ -915,7 +915,9 @@ $("#media-settings").addEventListener("submit", async (e) => {
 });
 $("#media-preview").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const r = await act(e.submitter, () => api("POST", "/api/media/preview", { filename: e.target.elements.filename.value, use_llm: true }));
+  const sf = $("#media-settings");
+  const useLlm = sf && sf.elements.use_llm ? sf.elements.use_llm.checked : false;
+  const r = await act(e.submitter, () => api("POST", "/api/media/preview", { filename: e.target.elements.filename.value, use_llm: useLlm }));
   if (r) { $("#media-preview-out").classList.remove("hidden"); $("#media-preview-out").textContent = JSON.stringify(r, null, 2); }
 });
 

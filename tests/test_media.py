@@ -40,7 +40,7 @@ def test_language_category_and_layout():
     info = media.detect_movie("Pushpa (2021) Telugu 1080p.mkv")
     assert info["language"] == "Telugu"
     target = media.target_path(info, "/lib", ".MKV")
-    assert target == Path("/lib/Movies/Tollywood/Pushpa (2021)/Pushpa (2021).mkv")
+    assert target == Path("/lib/Movies/Tollywood/Pushpa (2021).mkv")
     series = media.detect_series("Show.S02E09.mkv")
     assert media.target_path(series, "/lib", ".mp4") == Path("/lib/Series/Show/Season 02/Show S02E09.mp4")
 
