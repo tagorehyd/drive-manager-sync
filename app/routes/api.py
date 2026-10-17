@@ -713,6 +713,7 @@ def ftp_service(body: FtpServiceIn):
 def ftp_install():
     try:
         servers.ensure_ftp_packages()
+        servers.write_ftp_config_to_container(servers._ftp_config().get("shares", []), servers._ftp_config().get("users", []))
     except Exception as exc:
         raise _bad(exc)
     return {"ok": True}
@@ -788,6 +789,7 @@ def smb_service(body: SmbServiceIn):
 def smb_install():
     try:
         servers.ensure_smb_packages()
+        servers.write_smb_config_to_container(servers._smb_config().get("shares", []), servers._smb_config().get("users", []))
     except Exception as exc:
         raise _bad(exc)
     return {"ok": True}
@@ -862,6 +864,7 @@ def webdav_service(body: WebdavServiceIn):
 def webdav_install():
     try:
         servers.ensure_webdav_packages()
+        servers.write_webdav_config_to_container(servers._webdav_config().get("shares", []), servers._webdav_config().get("users", []))
     except Exception as exc:
         raise _bad(exc)
     return {"ok": True}

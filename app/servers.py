@@ -17,7 +17,7 @@ FTP_CONTAINER = "drive-manager-ftp"
 WEBDAV_CONTAINER_PREFIX = "drive-manager-webdav"
 SMB_CONTAINER = "drive-manager-smb"
 
-FTP_IMAGE = "stilliard/pure-ftpd:latest"
+FTP_IMAGE = "ftp-server-arm64:latest"
 WEBDAV_IMAGE = "sentanu/caddy-webdav:latest"
 SMB_IMAGE = "dockurr/samba:latest"
 
@@ -320,7 +320,7 @@ def write_webdav_config_to_container(shares: list[dict[str, Any]], users: list[d
             name=f"{WEBDAV_CONTAINER_PREFIX}-{i}",
             environment=env,
             volumes=volumes,
-            network_mode="host",
+            ports={"80/tcp": 8000 + i},
             labels={f"{WEBDAV_CONTAINER_PREFIX}-share": name},
             restart_policy={"Name": "unless-stopped"},
             detach=True,
@@ -332,7 +332,7 @@ def write_webdav_config_to_container(shares: list[dict[str, Any]], users: list[d
             name=f"{WEBDAV_CONTAINER_PREFIX}-empty",
             environment=env,
             volumes=volumes,
-            network_mode="host",
+            ports={"80/tcp": 8081},
             restart_policy={"Name": "unless-stopped"},
             detach=True,
         )
@@ -628,6 +628,7 @@ def ftp_server_status() -> dict[str, Any]:
     return {
         "stdout": "active" if running else "inactive",
         "installed": True,
+        "service_active": running,
         "shares": list_ftp_shares(),
         "users": list_ftp_users(),
     }
@@ -641,6 +642,7 @@ def webdav_server_status() -> dict[str, Any]:
     return {
         "stdout": "active" if running else "inactive",
         "installed": True,
+        "service_active": running,
         "shares": list_webdav_shares(),
         "users": list_webdav_users(),
     }
@@ -659,6 +661,7 @@ def smb_server_status() -> dict[str, Any]:
     return {
         "stdout": "active" if running else "inactive",
         "installed": True,
+        "service_active": running,
         "shares": list_smb_shares(),
         "users": list_smb_users(),
     }
