@@ -2,20 +2,12 @@
   "shares": [
     {
       "name": "media",
-      "options": {
-        "browseable": true,
-        "guest_ok": false,
-        "readonly": false
-      },
+      "options": {},
       "path": "/mnt/block-storage/jellyfin-media"
     },
     {
       "name": "docker_immich",
-      "options": {
-        "browseable": true,
-        "guest_ok": false,
-        "readonly": false
-      },
+      "options": {},
       "path": "/mnt/block-storage/docker_immich"
     }
   ],

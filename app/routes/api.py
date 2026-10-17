@@ -736,6 +736,81 @@ def delete_ftp_user(username: str):
     return {"ok": res["ok"], "stderr": res.get("stderr", "")}
 
 
+# ---------------------------------------------------------------- SMB server
+
+class SmbShareIn(BaseModel):
+    name: str
+    path: str
+    options: dict[str, Any] = Field(default_factory=dict)
+
+
+class SmbServiceIn(BaseModel):
+    action: str
+
+
+class SmbUserIn(BaseModel):
+    username: str
+    password: str
+
+
+@router.get("/servers/smb")
+def smb_status():
+    return servers.smb_server_status()
+
+
+@router.post("/servers/smb/shares")
+def add_smb_share(body: SmbShareIn):
+    try:
+        return {"ok": True, "share": servers.add_smb_share(body.model_dump())}
+    except (ValueError, KeyError) as exc:
+        raise _bad(exc)
+
+
+@router.delete("/servers/smb/shares/{name}")
+def remove_smb_share(name: str):
+    try:
+        servers.remove_smb_share(name)
+    except (ValueError, KeyError) as exc:
+        raise _bad(exc)
+    return {"ok": True}
+
+
+@router.post("/servers/smb/service")
+def smb_service(body: SmbServiceIn):
+    try:
+        res = servers.smb_service_action(body.action)
+    except ValueError as exc:
+        raise _bad(exc)
+    return {"ok": res["ok"], "stderr": res.get("stderr", "")}
+
+
+@router.post("/servers/smb/install")
+def smb_install():
+    try:
+        servers.ensure_smb_packages()
+    except Exception as exc:
+        raise _bad(exc)
+    return {"ok": True}
+
+
+@router.post("/servers/smb/users")
+def add_smb_user(body: SmbUserIn):
+    try:
+        res = servers.set_smb_password(body.username, body.password)
+    except (ValueError, KeyError) as exc:
+        raise _bad(exc)
+    return {"ok": res["ok"], "stderr": res.get("stderr", "")}
+
+
+@router.delete("/servers/smb/users/{username}")
+def delete_smb_user(username: str):
+    try:
+        res = servers.delete_smb_user(username)
+    except (ValueError, KeyError) as exc:
+        raise _bad(exc)
+    return {"ok": res["ok"], "stderr": res.get("stderr", "")}
+
+
 # ---------------------------------------------------------------- WebDAV server
 
 class WebdavShareIn(BaseModel):

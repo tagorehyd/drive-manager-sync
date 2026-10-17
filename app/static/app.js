@@ -942,10 +942,38 @@ $("#roots-form").addEventListener("submit", async (e) => {
 
 // ------------------------------------------------------------ servers
 loaders.servers = async () => {
-  const [ftp, webdav] = await Promise.all([api("GET", "/api/servers/ftp"), api("GET", "/api/servers/webdav")]);
+  const [smb, ftp, webdav] = await Promise.all([
+    api("GET", "/api/servers/smb"),
+    api("GET", "/api/servers/ftp"),
+    api("GET", "/api/servers/webdav"),
+  ]);
+  renderSmb(smb);
   renderFtp(ftp);
   renderWebdav(webdav);
 };
+
+function renderSmb(d) {
+  const status = d.service_active ? "active" : "inactive";
+  const cls = d.service_active ? "badge ok" : "badge bad";
+  $("#smb-status").className = cls;
+  $("#smb-status").textContent = d.installed ? (d.service_active ? "Active" : "Stopped") : "Not installed";
+
+  const installed = d.installed;
+  const running = d.service_active;
+  $("#smb-install").style.display = installed ? "none" : "inline-block";
+  $("#smb-start").style.display = (installed && !running) ? "inline-block" : "none";
+  $("#smb-stop").style.display = (installed && running) ? "inline-block" : "none";
+  $("#smb-restart").style.display = installed ? "inline-block" : "none";
+
+  const body = $("#smb-shares-body");
+  body.innerHTML = d.shares.map((s) => `<tr>
+    <td><b>${esc(s.name)}</b></td>
+    <td class="font-mono text-xs break-all">${esc(s.path)}</td>
+    <td>${s.exists ? '<span class="badge ok">yes</span>' : '<span class="badge bad">no</span>'}</td>
+    <td class="whitespace-nowrap"><button class="btn btn-sm btn-danger" data-smb-rm="${esc(s.name)}">Remove</button></td>
+  </tr>`).join("");
+  $("#smb-users-list").textContent = d.users && d.users.length ? d.users.join(", ") : "(none)";
+}
 
 function renderFtp(d) {
   const status = d.service_active ? "active" : "inactive";
@@ -1010,6 +1038,46 @@ function installAction(apiPath) {
     if (r) { loaders.servers(); }
   };
 }
+
+// SMB buttons
+$("#smb-install").addEventListener("click", installAction("/api/servers/smb/install"));
+$("#smb-start").addEventListener("click", serverAction("/api/servers/smb/service", "start"));
+$("#smb-stop").addEventListener("click", serverAction("/api/servers/smb/service", "stop"));
+$("#smb-restart").addEventListener("click", serverAction("/api/servers/smb/service", "restart"));
+$("#smb-refresh").addEventListener("click", loaders.servers);
+
+$("#smb-share-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const body = {
+    name: fd.get("name"),
+    path: fd.get("path"),
+  };
+  const r = await act(e.submitter, () => api("POST", "/api/servers/smb/shares", body), "Share added");
+  if (r) { e.target.reset(); loaders.servers(); }
+});
+
+$("#smb-shares-body").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-smb-rm]");
+  if (!b) return;
+  const name = b.dataset.smbRm;
+  if (!(await typedConfirm("Remove SMB share", `Remove share "${name}"?`, "REMOVE"))) return;
+  const r = await act(b, () => api("DELETE", `/api/servers/smb/shares/${encodeURIComponent(name)}`), "Share removed");
+  if (r) loaders.servers();
+});
+
+// SMB users
+$("#smb-user-add").addEventListener("click", async (e) => {
+  const name = $("#smb-user-name").value.trim();
+  const pass = $("#smb-user-pass").value;
+  if (!name || !pass) { toast("Username and password required", "error"); return; }
+  const r = await act(e.target, () => api("POST", "/api/servers/smb/users", { username: name, password: pass }), "User added");
+  if (r) {
+    $("#smb-user-name").value = "";
+    $("#smb-user-pass").value = "";
+    loaders.servers();
+  }
+});
 
 // FTP buttons
 $("#ftp-install").addEventListener("click", installAction("/api/servers/ftp/install"));
