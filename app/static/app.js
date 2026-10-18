@@ -860,7 +860,9 @@ loaders.media = async () => {
   mediaJobs = j.jobs;
   const st = s.settings, f = $("#media-settings");
   fillForm(f, st);
-  f.elements.language_folders.value = Object.entries(st.language_folders || {}).map(([k, v]) => `${k}=${v}`).join("\n");
+  // Don't pre-fill API key (security)
+  if (f.elements.llm_api_key) f.elements.llm_api_key.value = "";
+  renderLanguageRows(st.language_folders || {});
   $("#llm-key").textContent = s.llm_key_set ? "API key set" : "no API key";
   $("#llm-key").className = `badge ml-1 ${s.llm_key_set ? "ok" : "warn"}`;
   $("#media-body").innerHTML = mediaJobs.map((m) => {
@@ -909,10 +911,43 @@ $("#media-settings").addEventListener("submit", async (e) => {
   e.preventDefault();
   const d = formData(e.target);
   const lf = {};
-  d.language_folders.split("\n").forEach((line) => { const i = line.indexOf("="); if (i > 0) lf[line.slice(0, i).trim()] = line.slice(i + 1).trim(); });
+  $("#language-rows").querySelectorAll(".lang-row").forEach((row) => {
+    const name = row.querySelector('input[name="lang_name"]').value.trim();
+    const folder = row.querySelector('input[name="lang_folder"]').value.trim();
+    if (name && folder) lf[name] = folder;
+  });
   d.language_folders = lf;
   await act(e.submitter, () => api("PUT", "/api/media/settings", d), "Settings saved");
 });
+
+// ------------------------------------------------------------ language rows (dynamic)
+let langRowCounter = 0;
+
+function addLanguageRow(lang = "", folder = "") {
+  const id = `lang-folder-${langRowCounter++}`;
+  const div = document.createElement("div");
+  div.className = "lang-row flex gap-2 items-center";
+  div.innerHTML = `
+    <input class="inp flex-1" name="lang_name" value="${esc(lang)}" placeholder="Language">
+    <div class="flex gap-2"><input class="inp flex-1" id="${id}" name="lang_folder" value="${esc(folder)}"><button type="button" class="btn" data-browse="#${id}">Browse</button></div>
+    <button type="button" class="btn btn-danger btn-sm" data-remove-lang>✕</button>
+  `;
+  $("#language-rows").appendChild(div);
+}
+
+function renderLanguageRows(folders) {
+  $("#language-rows").innerHTML = "";
+  for (const [lang, folder] of Object.entries(folders || {})) {
+    addLanguageRow(lang, folder);
+  }
+}
+
+$("#add-lang-row").addEventListener("click", () => addLanguageRow());
+$("#language-rows").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-remove-lang]");
+  if (b) b.closest(".lang-row").remove();
+});
+
 $("#media-preview").addEventListener("submit", async (e) => {
   e.preventDefault();
   const sf = $("#media-settings");

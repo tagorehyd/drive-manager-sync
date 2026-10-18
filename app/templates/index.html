@@ -356,11 +356,12 @@
         </div>
         <div class="grid grid-cols-2 gap-3">
           <label><span class="lbl">LLM API key</span><input class="inp" name="llm_api_key" type="password"></label>
-          <label><span class="lbl">CAM-RIP folder</span><input class="inp" name="cam_rip_folder"></label>
+          <label><span class="lbl">CAM-RIP folder</span><div class="flex gap-2"><input class="inp flex-1" name="cam_rip_folder"><button type="button" class="btn" data-browse="[name='cam_rip_folder']">Browse</button></div></label>
           <label><span class="lbl">CAM-RIP qualities (comma-separated)</span><input class="inp" name="cam_rip_qualities"></label>
         </div>
-        <label class="block"><span class="lbl">Language folders (language=Folder per line)</span>
-          <textarea class="inp font-mono" rows="5" name="language_folders"></textarea></label>
+        <label class="block"><span class="lbl">Language folders</span></label>
+        <div id="language-rows" class="space-y-2"></div>
+        <div class="flex gap-2"><button type="button" class="btn" id="add-lang-row">Add language</button></div>
         <button class="btn">Save settings</button>
       </form>
       <form id="media-preview" class="flex gap-2"><input class="inp" name="filename" placeholder="Some.Movie.2023.1080p.WEB-DL.Telugu.mkv" required>
