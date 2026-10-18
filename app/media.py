@@ -43,6 +43,12 @@ NOISE = re.compile(r"\b(2160p|1080p|720p|480p|4k|uhd|hdr|x264|x265|h264|h265|hev
 
 def clean_name(name: str) -> str:
     stem = os.path.splitext(name)[0] if os.path.splitext(name)[1].lower() in EXTENSIONS else name
+    # Strip leading site watermark (e.g. "www.5MovieRulz.company - Title ...").
+    # Remove everything before the first " - " when that prefix looks like a domain.
+    if " - " in stem:
+        prefix = stem.split(" - ", 1)[0]
+        if "." in prefix:
+            stem = stem.split(" - ", 1)[1]
     stem = re.sub(r"^\s*(?:www\.)?[A-Za-z0-9-]+\.(?:com|net|org|in|me|co|tv|cc|xyz|to|ws)\s*[-_]*\s*", "", stem)
     stem = re.sub(r"^\s*\[[^\]]*\]\s*", "", stem)
     stem = stem.replace("_", " ")
