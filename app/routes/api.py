@@ -577,7 +577,9 @@ def media_records(job_id: str):
 
 @router.get("/media/settings")
 def get_media_settings():
-    return {"settings": media.settings(), "llm_key_set": bool(os.environ.get("OPENAI_COMPATIBLE_API_KEY"))}
+    settings = media.settings()
+    key_set = bool(os.environ.get("OPENAI_COMPATIBLE_API_KEY") or settings.get("llm_api_key"))
+    return {"settings": settings, "llm_key_set": key_set}
 
 
 @router.put("/media/settings")

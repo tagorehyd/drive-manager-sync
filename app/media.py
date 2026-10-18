@@ -129,52 +129,52 @@ def _matches_any(candidate_values: Iterable[str], configured_values: Iterable[st
     return False
 
 
-_CATEGORY_RULES_PATH = Path(__file__).resolve().parent.parent / "state" / "category_rules.json"
+def resolve_category(language: Any, quality: Any, settings: dict[str, Any] | None = None) -> str:
+    """Resolve the destination folder for a movie.
 
+    CAM-RIP qualities (dvdscr/cam/ts/telecine/dvdrip by default) go to the
+    configured CAM-RIP folder regardless of language. Otherwise the language
+    -> folder mapping is used. All matching is case-insensitive.
+    """
+    settings = settings or config.load("media-jobs")["settings"]
+    normalized_language = normalize_language(language)
 
-def _default_category_rules() -> dict[str, Any]:
-    return {
-        "rules": [
-            {"category": "Temp_cam_RIPS", "language": ["*"], "quality": ["dvdscr", "cam", "ts", "telecine"]},
-            {"category": "Bollywood", "language": ["hindi"], "quality": ["*"]},
-            {"category": "Tollywood", "language": ["telugu", "tamil", "malayalam", "kannada"], "quality": ["*"]},
-            {"category": "Hollywood", "language": ["english", "japanese", "japan", "chinese", "china", "german", "french", "spanish", "italian", "korean"], "quality": ["*"]},
-        ]
+    # Normalize quality to a list of lowercase strings.
+    if isinstance(quality, str):
+        quality_list = [quality]
+    elif isinstance(quality, (list, tuple)):
+        quality_list = list(quality)
+    else:
+        quality_list = []
+    normalized_quality = normalize_quality(quality_list)
+
+    cam_rip_folder = sanitize_filename_text(settings.get("cam_rip_folder") or "CAM-RIP")
+    cam_rip_qualities = {
+        str(q).strip().lower()
+        for q in (settings.get("cam_rip_qualities") or ["dvdscr", "cam", "ts", "telecine", "dvdrip"])
+        if str(q).strip()
     }
 
+    # CAM-RIP takes priority regardless of language
+    if normalized_quality and any(q in cam_rip_qualities for q in normalized_quality):
+        return cam_rip_folder
 
-def load_category_rules_from_settings(settings: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-    """Read category rules from media-jobs settings (flat {language: category} or rule list)."""
-    settings = settings or config.load("media-jobs")["settings"]
-    rules_cfg = settings.get("category_rules") or {}
-    if isinstance(rules_cfg, list):
-        return [r for r in rules_cfg if isinstance(r, dict)]
-    # flat {language: category} -> convert to rule list
-    rules = []
-    for lang, cat in rules_cfg.items():
-        if lang.strip() and cat.strip():
-            rules.append({"category": cat.strip(), "language": [lang.strip()], "quality": ["*"]})
-    if not rules:
-        rules = _default_category_rules()["rules"]
-    return rules
+    # Language -> folder mapping (case-insensitive).
+    # Supports the new "language_folders" dict and migrates the old flat
+    # "category_rules" {language: category} format.
+    language_folders = settings.get("language_folders") or {}
+    if not language_folders and isinstance(settings.get("category_rules"), dict):
+        language_folders = settings.get("category_rules") or {}
+    lang_lookup = {
+        str(k).strip().lower(): str(v).strip()
+        for k, v in language_folders.items()
+        if str(k).strip() and str(v).strip()
+    }
+    for lang in normalized_language:
+        if lang in lang_lookup:
+            return sanitize_filename_text(lang_lookup[lang])
 
-
-def resolve_category(language: Any, quality: Any, settings: dict[str, Any] | None = None) -> str:
-    normalized_language = normalize_language(language)
-    normalized_quality = normalize_quality(quality)
-    matching_rules = []
-    for index, rule in enumerate(load_category_rules_from_settings(settings)):
-        rule_language = _as_list(rule.get("language"))
-        rule_quality = _as_list(rule.get("quality"))
-        if _matches_any(normalized_language, rule_language) and _matches_any(normalized_quality, rule_quality):
-            matching_rules.append((index, rule))
-    if not matching_rules:
-        return "Hollywood"
-    for _, rule in matching_rules:
-        category = str(rule.get("category") or "Hollywood").strip()
-        if category:
-            return category
-    return "Hollywood"
+    return sanitize_filename_text(settings.get("default_category") or "Hollywood")
 
 
 def build_target_filename(metadata: Dict[str, Any], extension: str) -> str:
@@ -257,13 +257,27 @@ QUALITY_HINTS = (
     "dts", "10bit", "proper", "repack",
 )
 
+# Qualities that always route to CAM-RIP regardless of language/resolution.
+CAM_RIP_QUALITY_HINTS = {"dvdscr", "cam", "ts", "tc", "telecine", "dvdrip", "dvdrip", "hdcam"}
+
 
 def detect_quality(name: str) -> str | None:
+    """Return the first detected quality hint from a filename."""
     lowered = name.lower().replace("_", " ").replace("-", " ")
     for hint in sorted(QUALITY_HINTS, key=len, reverse=True):
         if re.search(rf"\b{re.escape(hint)}\b", lowered):
             return hint.upper().replace("-", "")
     return None
+
+
+def detect_qualities(name: str) -> list[str]:
+    """Return all detected quality hints from a filename (lowercased)."""
+    lowered = name.lower().replace("_", " ").replace("-", " ")
+    found: list[str] = []
+    for hint in sorted(QUALITY_HINTS, key=len, reverse=True):
+        if re.search(rf"\b{re.escape(hint)}\b", lowered):
+            found.append(hint.upper().replace("-", ""))
+    return found
 
 
 def detect_series(filename: str, parent: str = "") -> dict[str, Any] | None:
@@ -276,7 +290,7 @@ def detect_series(filename: str, parent: str = "") -> dict[str, Any] | None:
                 show = _title(re.sub(r"\bSeason\s*\d+\b|\bS\d{1,2}\b", "", clean_name(parent), flags=re.I))
             return {"kind": "series", "title": show or "Unknown Show", "movie_name": show or "Unknown Show",
                     "season": int(m.group(1)), "episode": int(m.group(2)), "year": None,
-                    "language": detect_language(filename), "quality": detect_quality(filename), "source": "series"}
+                    "language": detect_language(filename), "quality": detect_qualities(filename), "source": "series"}
     return None
 
 
@@ -289,7 +303,7 @@ def detect_movie(filename: str) -> dict[str, Any] | None:
     if not title:
         return None
     return {"kind": "movie", "title": title, "movie_name": title, "year": int(m.group("year")), "season": None, "episode": None,
-            "language": detect_language(filename), "quality": detect_quality(filename), "source": "movie"}
+            "language": detect_language(filename), "quality": detect_qualities(filename), "source": "movie"}
 
 
 def _extract_json(text: str) -> dict[str, Any] | None:
@@ -310,7 +324,7 @@ def _extract_json(text: str) -> dict[str, Any] | None:
 def llm_payload(filename: str, settings: dict[str, Any] | None = None) -> dict[str, Any]:
     """Build the LLM chat-completion request body for a filename (without sending it)."""
     settings = settings or config.load("media-jobs")["settings"]
-    key = os.environ.get("OPENAI_COMPATIBLE_API_KEY", "")
+    key = os.environ.get("OPENAI_COMPATIBLE_API_KEY", "") or str(settings.get("llm_api_key") or "")
     base = (os.environ.get("OPENAI_COMPATIBLE_BASE_URL") or settings.get("llm_base_url") or "").rstrip("/")
     prompt = ("Identify the movie from this release file name. Reply with ONLY JSON: "
               '{"movie_name": "", "year": "", "language": "", "imdb_id": ""}. Use empty strings when unsure.')
@@ -329,7 +343,7 @@ def llm_payload(filename: str, settings: dict[str, Any] | None = None) -> dict[s
 def llm_identify(filename: str, settings: dict[str, Any] | None = None, timeout: float = 30) -> dict[str, Any] | None:
     """OpenAI-compatible chat completion returning {movie_name, year, language, imdb_id}."""
     settings = settings or config.load("media-jobs")["settings"]
-    key = os.environ.get("OPENAI_COMPATIBLE_API_KEY", "")
+    key = os.environ.get("OPENAI_COMPATIBLE_API_KEY", "") or str(settings.get("llm_api_key") or "")
     base = (os.environ.get("OPENAI_COMPATIBLE_BASE_URL") or settings.get("llm_base_url") or "").rstrip("/")
     if not key or not base or not settings.get("use_llm", True):
         return None
@@ -497,8 +511,28 @@ def save_settings(data: dict[str, Any]) -> dict[str, Any]:
                 s[key] = str(data[key]).strip()
         if "use_llm" in data:
             s["use_llm"] = bool(data["use_llm"])
-        if isinstance(data.get("category_rules"), dict):
-            s["category_rules"] = {str(k).strip(): str(v).strip() for k, v in data["category_rules"].items() if str(k).strip()}
+        if "llm_api_key" in data and str(data["llm_api_key"]).strip():
+            s["llm_api_key"] = str(data["llm_api_key"]).strip()
+        if "cam_rip_folder" in data:
+            s["cam_rip_folder"] = str(data["cam_rip_folder"]).strip()
+        if "cam_rip_qualities" in data:
+            s["cam_rip_qualities"] = [q.strip() for q in str(data["cam_rip_qualities"]).split(",") if q.strip()]
+        if isinstance(data.get("language_folders"), dict):
+            s["language_folders"] = {str(k).strip(): str(v).strip() for k, v in data["language_folders"].items() if str(k).strip()}
+        else:
+            # Parse "language=Folder per line" textarea into language_folders dict
+            lf_raw = data.get("language_folders", "")
+            if isinstance(lf_raw, str):
+                lf_dict = {}
+                for line in lf_raw.split("\n"):
+                    line = line.strip()
+                    if "=" in line:
+                        k, v = line.split("=", 1)
+                        k = k.strip()
+                        v = v.strip()
+                        if k and v:
+                            lf_dict[k] = v
+                s["language_folders"] = lf_dict
     return config.update("media-jobs", apply)["settings"]
 
 

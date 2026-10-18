@@ -39,9 +39,15 @@ DEFAULTS: dict[str, Any] = {
             "llm_base_url": "https://api.openai.com/v1",
             "llm_model": "gpt-4o-mini",
             "default_category": "Hollywood",
-            "category_rules": {
-                "Telugu": "Tollywood", "Tamil": "Kollywood", "Hindi": "Bollywood",
-                "Malayalam": "Mollywood", "Kannada": "Sandalwood", "English": "Hollywood",
+            "cam_rip_folder": "CAM-RIP",
+            "cam_rip_qualities": ["dvdscr", "cam", "ts", "telecine", "dvdrip"],
+            "language_folders": {
+                "hindi": "Bollywood",
+                "telugu": "Tollywood",
+                "tamil": "Kollywood",
+                "malayalam": "Mollywood",
+                "kannada": "Sandalwood",
+                "english": "Hollywood",
             },
         },
     },

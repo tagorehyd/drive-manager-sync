@@ -860,7 +860,7 @@ loaders.media = async () => {
   mediaJobs = j.jobs;
   const st = s.settings, f = $("#media-settings");
   fillForm(f, st);
-  f.elements.category_rules.value = Object.entries(st.category_rules || {}).map(([k, v]) => `${k}=${v}`).join("\n");
+  f.elements.language_folders.value = Object.entries(st.language_folders || {}).map(([k, v]) => `${k}=${v}`).join("\n");
   $("#llm-key").textContent = s.llm_key_set ? "API key set" : "no API key";
   $("#llm-key").className = `badge ml-1 ${s.llm_key_set ? "ok" : "warn"}`;
   $("#media-body").innerHTML = mediaJobs.map((m) => {
@@ -908,9 +908,9 @@ $("#mj-reset").addEventListener("click", resetMediaForm);
 $("#media-settings").addEventListener("submit", async (e) => {
   e.preventDefault();
   const d = formData(e.target);
-  const rules = {};
-  d.category_rules.split("\n").forEach((line) => { const i = line.indexOf("="); if (i > 0) rules[line.slice(0, i).trim()] = line.slice(i + 1).trim(); });
-  d.category_rules = rules;
+  const lf = {};
+  d.language_folders.split("\n").forEach((line) => { const i = line.indexOf("="); if (i > 0) lf[line.slice(0, i).trim()] = line.slice(i + 1).trim(); });
+  d.language_folders = lf;
   await act(e.submitter, () => api("PUT", "/api/media/settings", d), "Settings saved");
 });
 $("#media-preview").addEventListener("submit", async (e) => {

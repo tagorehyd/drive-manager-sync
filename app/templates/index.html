@@ -354,8 +354,13 @@
           <label><span class="lbl">Default category</span><input class="inp" name="default_category"></label>
           <label class="flex items-end gap-1 text-sm"><input type="checkbox" name="use_llm"> Use LLM fallback <span id="llm-key" class="badge ml-1"></span></label>
         </div>
-        <label class="block"><span class="lbl">Category rules (language=Category per line)</span>
-          <textarea class="inp font-mono" rows="5" name="category_rules"></textarea></label>
+        <div class="grid grid-cols-2 gap-3">
+          <label><span class="lbl">LLM API key</span><input class="inp" name="llm_api_key" type="password"></label>
+          <label><span class="lbl">CAM-RIP folder</span><input class="inp" name="cam_rip_folder"></label>
+          <label><span class="lbl">CAM-RIP qualities (comma-separated)</span><input class="inp" name="cam_rip_qualities"></label>
+        </div>
+        <label class="block"><span class="lbl">Language folders (language=Folder per line)</span>
+          <textarea class="inp font-mono" rows="5" name="language_folders"></textarea></label>
         <button class="btn">Save settings</button>
       </form>
       <form id="media-preview" class="flex gap-2"><input class="inp" name="filename" placeholder="Some.Movie.2023.1080p.WEB-DL.Telugu.mkv" required>
