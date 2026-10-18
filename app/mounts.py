@@ -207,8 +207,7 @@ def _check_mount_point(path: str) -> str:
     if not _PATH_RE.match(path) or ".." in path.split("/"):
         raise MountError(f"Mount point must be an absolute path without ..")
     if not path.startswith(MNT_ROOT + "/"):
-        # Allow non-/mnt paths for imported fstab entries (they already exist)
-        pass
+        raise MountError(f"Mount point must be under {MNT_ROOT}")
     return path
 
 

@@ -59,7 +59,7 @@ def build_cron(spec: dict[str, Any]) -> str:
     if kind in ("manual", "event"):
         return ""
     if kind == "minutes":
-        n = int(spec.get("every") or 15)
+        n = int(spec.get("every", 15))
         if not 1 <= n <= 59:
             raise SyncError("every N minutes: N must be 1-59")
         return "* * * * *" if n == 1 else f"*/{n} * * * *"
