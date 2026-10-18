@@ -378,7 +378,7 @@ def category_for(language: str | None, quality: str | None = None, settings: dic
     return sanitize(resolve_category(language, quality, settings))
 
 
-def target_path(info: dict[str, Any], destination: str, ext: str, settings: dict[str, Any] | None = None) -> Path:
+def target_path(info: dict[str, Any], destination: str, ext: str, settings: dict[str, Any] | None = None, category_override: str | None = None) -> Path:
     ext = ext.lower()
     settings = settings or config.load("media-jobs")["settings"]
     if info["kind"] == "series":
@@ -391,19 +391,29 @@ def target_path(info: dict[str, Any], destination: str, ext: str, settings: dict
     name = sanitize_filename_text(info.get("title") or "Unknown Movie")
     year = info.get("year")
     year_text = f" ({year})" if year else ""
-    category = resolve_category(info.get("language"), info.get("quality"), settings)
+    if category_override == "CAM-RIP":
+        category = sanitize_filename_text(settings.get("cam_rip_folder") or "CAM-RIP")
+    elif category_override:
+        category = category_override
+    else:
+        category = resolve_category(info.get("language"), info.get("quality"), settings)
     target_name = f"{name}{year_text}{ext}"
     return Path(destination) / "Movies" / category / target_name
 
 
-def preview(filename: str, destination: str = "/mnt/media", use_llm: bool = False) -> dict[str, Any]:
+def preview(filename: str, destination: str = "/mnt/media", use_llm: bool = False, category: str = "CAM-RIP") -> dict[str, Any]:
     """Preview how a filename would be renamed.
 
     A direct filename match (series/movie pattern) is tried first without an LLM
     call. If that matches, the rename target is returned with no LLM body.
     Otherwise the LLM fallback is considered and the LLM request body is exposed
     so the UI can preview what would be sent to the LLM.
+
+    The category parameter drives the target folder. Default is "CAM-RIP".
+    If the selected category is anything other than "CAM-RIP", the target is
+    set to None and the move operation is prevented.
     """
+    settings = config.load("media-jobs")["settings"]
     name = os.path.basename(filename)
     parent = os.path.basename(os.path.dirname(filename) or ".")
     ext = os.path.splitext(filename)[1]
@@ -411,13 +421,25 @@ def preview(filename: str, destination: str = "/mnt/media", use_llm: bool = Fals
     # Step 1: direct match without any LLM call.
     info = identify(name, parent, use_llm=False)
     if info and info.get("movie_name"):
+        if category != "CAM-RIP":
+            return {
+                "ok": False,
+                "processing_method": "direct match",
+                "source": name,
+                "info": info,
+                "target": None,
+                "llm_request": None,
+                "category": category,
+                "error": f"Move prevented: category '{category}' is not CAM-RIP",
+            }
         return {
             "ok": True,
             "processing_method": "direct match",
             "source": name,
             "info": info,
-            "target": str(target_path(info, destination, ext)),
+            "target": str(target_path(info, destination, ext, settings, category_override=category)),
             "llm_request": None,
+            "category": category,
         }
 
     # Step 2: no direct match -> consider LLM fallback and expose its request body.
@@ -431,17 +453,30 @@ def preview(filename: str, destination: str = "/mnt/media", use_llm: bool = Fals
             "target": None,
             "error": "no direct match; LLM fallback not enabled",
             "llm_request": request,
+            "category": category,
         }
 
     llm_info = llm_identify(name)
     if llm_info and llm_info.get("movie_name"):
+        if category != "CAM-RIP":
+            return {
+                "ok": False,
+                "processing_method": "llm",
+                "source": name,
+                "info": llm_info,
+                "target": None,
+                "llm_request": request,
+                "category": category,
+                "error": f"Move prevented: category '{category}' is not CAM-RIP",
+            }
         return {
             "ok": True,
             "processing_method": "llm",
             "source": name,
             "info": llm_info,
-            "target": str(target_path(llm_info, destination, ext)),
+            "target": str(target_path(llm_info, destination, ext, settings, category_override=category)),
             "llm_request": request,
+            "category": category,
         }
     return {
         "ok": False,
@@ -451,6 +486,7 @@ def preview(filename: str, destination: str = "/mnt/media", use_llm: bool = Fals
         "target": None,
         "error": "no direct match and LLM did not identify the file",
         "llm_request": request,
+        "category": category,
     }
 
 

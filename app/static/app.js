@@ -863,6 +863,7 @@ loaders.media = async () => {
   // Don't pre-fill API key (security)
   if (f.elements.llm_api_key) f.elements.llm_api_key.value = "";
   renderLanguageRows(st.language_folders || {});
+  renderCategoryDropdown(st.language_folders || {});
   $("#llm-key").textContent = s.llm_key_set ? "API key set" : "no API key";
   $("#llm-key").className = `badge ml-1 ${s.llm_key_set ? "ok" : "warn"}`;
   $("#media-body").innerHTML = mediaJobs.map((m) => {
@@ -942,6 +943,23 @@ function renderLanguageRows(folders) {
   }
 }
 
+function renderCategoryDropdown(folders) {
+  const sel = $("#media-preview-category");
+  if (!sel) return;
+  sel.innerHTML = '<option value="CAM-RIP">CAM-RIP</option>';
+  const foldersSeen = new Set(["CAM-RIP"]);
+  for (const [lang, folder] of Object.entries(folders || {})) {
+    if (folder && !foldersSeen.has(folder)) {
+      foldersSeen.add(folder);
+      const opt = document.createElement("option");
+      opt.value = folder;
+      opt.textContent = folder;
+      sel.appendChild(opt);
+    }
+  }
+  sel.value = "CAM-RIP";
+}
+
 $("#add-lang-row").addEventListener("click", () => addLanguageRow());
 $("#language-rows").addEventListener("click", (e) => {
   const b = e.target.closest("[data-remove-lang]");
@@ -952,7 +970,9 @@ $("#media-preview").addEventListener("submit", async (e) => {
   e.preventDefault();
   const sf = $("#media-settings");
   const useLlm = sf && sf.elements.use_llm ? sf.elements.use_llm.checked : false;
-  const r = await act(e.submitter, () => api("POST", "/api/media/preview", { filename: e.target.elements.filename.value, use_llm: useLlm }));
+  const categorySel = $("#media-preview-category");
+  const category = categorySel ? categorySel.value : "CAM-RIP";
+  const r = await act(e.submitter, () => api("POST", "/api/media/preview", { filename: e.target.elements.filename.value, use_llm: useLlm, category }));
   if (r) { $("#media-preview-out").classList.remove("hidden"); $("#media-preview-out").textContent = JSON.stringify(r, null, 2); }
 });
 

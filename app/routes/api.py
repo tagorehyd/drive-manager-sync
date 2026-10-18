@@ -528,6 +528,7 @@ class PreviewIn(BaseModel):
     filename: str
     destination: str = "/mnt/media"
     use_llm: bool = False
+    category: str = "CAM-RIP"
 
 
 @router.get("/media/jobs")
@@ -589,7 +590,7 @@ def put_media_settings(body: dict[str, Any]):
 
 @router.post("/media/preview")
 def media_preview(body: PreviewIn):
-    return media.preview(body.filename, body.destination, body.use_llm)
+    return media.preview(body.filename, body.destination, body.use_llm, body.category)
 
 
 # ---------------------------------------------------------------- settings
