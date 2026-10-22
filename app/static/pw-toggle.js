@@ -1,21 +1,28 @@
-/* Toggle visibility of password fields via an eye icon. */
+/* Toggle visibility of password fields via an eye icon.
+   Wraps each <input type=password> in a field-styled container so the
+   reveal/hide button sits flush inside the input border, matching the
+   .inp look. */
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("input[type=password]").forEach((input) => {
     if (input.dataset.pwEye) return;
     input.dataset.pwEye = "1";
-    input.style.paddingRight = "28px";
-    const wrap = document.createElement("div");
-    wrap.className = "relative";
-    input.parentNode.insertBefore(wrap, input);
-    wrap.appendChild(input);
+
+    // Preserve any classes/width the input already has
+    const wrapper = document.createElement("div");
+    wrapper.className = "pw-toggle-wrap inline-block";
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(input);
+
+    // Input keeps its text styling but loses its border/bg so the wrapper
+    // provides a single unified border with the button sitting inside it.
+    input.classList.add("pw-toggle-input");
+    input.style.paddingRight = "2.5rem";
+    input.style.borderRight = "none";
+    input.style.borderRadius = "var(--radius-sm) 0 0 var(--radius-sm)";
+
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "absolute right-2 top-1/2 -mt-1 p-1 text-slate-500 hover:text-slate-800 focus:outline-none";
-    btn.innerHTML =
-      '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
-      '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zm20-3c1.5-.5 3-1 4.5-1.5S20.5 5 19 4c-1.5-1-3-2-4-2s-2.5 1-4 2c-1.5 1-3 2-4 2-1.5 1-3 2-4.5 1.5-1.5.5-2 1-2 2s.5 1.5 2 2 2 1 3 1 4 .5 4 .5z"/>' +
-      '<path d="M18 8a3 3 0 11-6 0 3 3 0 016 0z"/>' +
-      '</svg>';
+    btn.className = "pw-toggle-btn";
     btn.title = "Show password";
     let shown = false;
     btn.addEventListener("click", (e) => {
@@ -25,6 +32,6 @@ document.addEventListener("DOMContentLoaded", () => {
       input.type = shown ? "text" : "password";
       btn.title = shown ? "Hide password" : "Show password";
     });
-    wrap.appendChild(btn);
+    wrapper.appendChild(btn);
   });
 });
